@@ -299,21 +299,23 @@
 - 上传微信二维码。
 - 不提供其他页面装修配置。
 
-## 12. 最小数据模型
+## 12. 数据库体系摘要
+
+数据库的完整实施规范见 [database-architecture.md](./technical/database-architecture.md)。该文档是表结构、约束、索引、读写事务、OSS 一致性、迁移和备份恢复的权威来源。本节只保留业务关系摘要。
 
 ```text
 SiteSettings (单行配置)
-├── logoUrl
+├── logoObjectKey
 ├── contactTextCn
 ├── contactTextEn
 ├── wechatId
-└── wechatQrUrl
+└── wechatQrObjectKey
 
 Banner
-├── desktopImageCn
-├── desktopImageEn
-├── mobileImageCn?
-├── mobileImageEn?
+├── desktopImageCnKey
+├── desktopImageEnKey
+├── mobileImageCnKey?
+├── mobileImageEnKey?
 ├── sortOrder
 └── enabled
 
@@ -337,8 +339,8 @@ Sku
 ├── nameEn?
 ├── tabLabelCn
 ├── tabLabelEn?
-├── priceInCents
-├── sortOrder
+├── priceCents
+├── position: 1 | 2 | 3
 ├── enabled
 └── images[]
 
@@ -346,7 +348,11 @@ SkuImage
 ├── id
 ├── skuId
 ├── objectKey
-└── sortOrder
+├── position
+├── width
+├── height
+├── mimeType
+└── byteSize
 
 Tag
 ├── id
@@ -364,6 +370,8 @@ ProductTag
 - Product 是商品配置和写入操作的聚合入口；SKU 只能通过所属 Product 创建和修改。
 - SKU 与图片是一对多关系。
 - Product 与 Tag 是多对多关系。
+- 首页动态数据来自 Banner、热门 Product 和 SiteSettings；首页布局、导航及品牌介绍仍由代码负责。
+- 图片二进制由 OSS 负责，SQLite 只保存对象 Key、顺序、尺寸和业务关系。
 - 不建立 User、Role、Permission、Order、Inventory 等表。
 
 ## 13. 浏览次数
@@ -374,127 +382,19 @@ ProductTag
 - 一期不做用户去重、机器人识别和反作弊。
 - 浏览次数仅用于站内热门排序，不作为商业分析数据。
 
-## 14. 技术方案
+## 14. 技术方案索引
 
-### 14.1 应用
+本主规划只保留产品范围、业务规则和验收目标；工程实现细节统一维护在独立技术文档中：
 
-- Node.js LTS。
-- Next.js App Router + TypeScript。
-- 前台、中台和内部接口为同一个应用。
-- SQLite 作为一期数据库。
-- 使用成熟 ORM 管理数据模型和迁移。
-- Product 是中台写入的聚合入口，Product 与其 SKU 变更在同一数据库事务中提交。
-- 使用 CSS Modules 和全局设计变量实现界面，不引入大型 UI 框架。
-- 图标使用 Lucide 图标库。
-- 仅为中英文维护小型本地化字典，不引入复杂翻译平台。
+- [前端技术方案](./technical/frontend-technical-plan.md)：路由、组件、响应式和 mock 到真实数据的替换边界。
+- [数据调用契约](./technical/data-access-contract.md)：首页、列表、详情、浏览次数和中台写入契约。
+- [数据库架构](./technical/database-architecture.md)：表结构、约束、索引、事务、迁移和备份。
+- [部署指南](./technical/deployment-guide.md)：ECS、SQLite、OSS/CDN、HTTPS、发布和恢复。
+- [可执行实施方案](./technical/execution-plan.md)：阶段 A-E、交付物和验收门槛。
 
-### 14.2 图片上传
+一期技术基线摘要：Next.js Node runtime、单 ECS、SQLite、OSS/CDN、accessKey 中台入口；不启用账号体系、支付、订单、库存、Redis、RDS 或独立搜索服务。
 
-- 管理员从本地选择 JPG、PNG 或 WebP 文件。
-- 服务端生成受限上传凭证，浏览器直接上传至 OSS。
-- 上传前校验类型和大小，服务端生成唯一对象名称。
-- 数据库只保存 OSS object key，不保存图片二进制。
-- 使用响应式图片尺寸和懒加载降低移动端流量。
-- 删除 SKU 图片时同步删除其专属 OSS 对象。
-
-### 14.3 基础安全
-
-- `/admin/[accessKey]` 中的 Key 是一期唯一中台访问凭据，而不只是入口提示。
-- 中台页面和所有管理写接口均在服务端校验 Key；页面校验通过不能替代接口校验。
-- Key 比较在服务端完成；Key 不进入客户端构建产物、应用日志、分析事件或错误页面。
-- 后台响应设置 `noindex`、`no-store` 和 `Referrer-Policy: no-referrer`，CDN 不缓存后台页面和接口。
-- Key 会出现在管理员地址栏、浏览器历史以及部分云基础设施的受限访问日志中；相关日志只允许开发运维人员访问，并在能力允许时对 `/admin/*` 路径脱敏。
-- 不设置管理员认证 Cookie，不建立账号或会话状态。
-- Key 泄露时的处理方式是生成新 Key、更新生产环境变量并重启应用，使旧地址失效。
-- 写操作验证请求来源，图片上传限制类型和大小。
-- 对展示内容进行输出转义；一期不接受管理员任意 HTML。
-- 这些措施属于必要基础防护，不扩展为权限或风控系统。
-
-## 15. 部署方案
-
-### 15.1 一期架构
-
-```text
-全球用户
-   ↓
-阿里云全球 CDN
-   ├── 图片、JS、CSS：边缘节点返回
-   └── 动态请求：新加坡 ECS
-                     ├── Next.js 前台和中台
-                     └── SQLite 持久化数据
-
-管理员上传图片 → 新加坡 OSS → 全球 CDN
-SQLite 每日备份 → OSS
-```
-
-### 15.2 云资源
-
-- 阿里云新加坡低配 ECS。
-- 新加坡 OSS Bucket。
-- 阿里云全球 CDN。
-- 阿里云 DNS 和 HTTPS 证书。
-- ECS 持久化磁盘和磁盘快照。
-- SQLite 每日备份至 OSS，建议保留最近 30 天。
-
-### 15.3 一期不启用
-
-- RDS PostgreSQL。
-- 多台 ECS 和负载均衡。
-- 多地域数据库或应用部署。
-- OSS Transfer Acceleration。
-- WAF 和专用安全产品。
-
-只有在真实流量、写入并发或可用性要求增长后，才基于监控结果升级。
-
-## 16. 开发顺序
-
-### 阶段 A：工程基础
-
-- 初始化 Next.js、TypeScript、样式和代码质量工具。
-- 建立中英文路由、设计变量和全局导航。
-- 建立 SQLite 数据模型和迁移。
-- 建立后台路径 Key 及覆盖所有中台页面和写接口的服务端校验。
-
-验收门槛：本地可启动；中英文路由可访问；无 Key 和错误 Key 均返回 404；正确 Key 可直接进入中台；数据库迁移可重复执行。
-
-### 阶段 B：中台和素材上传
-
-- 完成 Product、内嵌 SKU、图片和标签管理。
-- 完成 Banner 管理。
-- 完成联系方式、二维码和 Logo 设置。
-- 接入 OSS 上传和图片排序。
-- 完成发布校验。
-
-验收门槛：管理员可以从零创建一个符合发布条件的双语商品，并在数据库和 OSS 中形成正确关系。
-
-### 阶段 C：用户前台
-
-- 完成首页。
-- 完成商品列表、搜索、筛选、排序和分页。
-- 完成商品详情、SKU Tab 切换、图片轮播和联系弹窗。
-- 完成浏览计数和热门排序。
-
-验收门槛：中台发布内容能在正确语言页面展示；Product 与 SKU 职责不混淆；搜索结果最小粒度始终是 Product。
-
-### 阶段 D：响应式与可用性
-
-- 完成 PC、平板和手机布局。
-- 完成键盘操作、焦点状态、弹窗关闭和图片替代文本。
-- 检查长中英文文本、缺失英文回退和图片加载状态。
-- 优化图片尺寸和首屏加载。
-
-验收门槛：主流程在桌面和移动视口中无重叠、溢出和布局跳动。
-
-### 阶段 E：部署与上线验证
-
-- 部署新加坡 ECS、OSS、CDN、DNS 和 HTTPS。
-- 配置生产环境 `accessKey`。
-- 配置数据库备份和磁盘快照。
-- 执行生产环境冒烟测试和备份恢复演练。
-
-验收门槛：公网 HTTPS 可访问；后台上传可用；CDN 正常返回图片；数据库可从备份恢复。
-
-## 17. 测试与验收
+## 15. 测试与验收
 
 ### 17.1 自动化测试
 
@@ -525,7 +425,7 @@ SQLite 每日备份 → OSS
 10. 手机和桌面端均可完成浏览、筛选、切换图片和联系购买流程。
 11. `/admin` 和错误 Key 返回 404；正确 Key 可直接进入中台，并且所有管理写接口拒绝错误 Key。
 
-## 18. 上线前由项目方提供
+## 16. 上线前由项目方提供
 
 - 中文和英文品牌介绍 HTML 文案。
 - 中文和英文联系说明。
@@ -538,7 +438,7 @@ SQLite 每日备份 → OSS
 
 这些素材不阻塞工程搭建，但在生产验收前必须补齐。
 
-## 19. 一期完成定义
+## 17. 一期完成定义
 
 满足以下条件后，一期才视为完成：
 
