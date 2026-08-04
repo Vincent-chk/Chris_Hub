@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
+  <title id="title">Chris Hub brand mark</title>
+  <desc id="desc">Three overlapping cards surrounding a bold letter C shape.</desc>
+  <g fill="none" stroke-linejoin="round">
+    <rect x="24" y="32" width="88" height="108" rx="10" transform="rotate(-10 68 86)" fill="#16A39A" stroke="#17332F" stroke-width="6"/>
+    <rect x="48" y="20" width="88" height="108" rx="10" transform="rotate(9 92 74)" fill="#F05A47" stroke="#40201C" stroke-width="6"/>
+    <rect x="36" y="26" width="88" height="108" rx="10" fill="#FFFDF8" stroke="#202326" stroke-width="7"/>
+    <path d="M99 58a34 34 0 1 0 0 44" stroke="#202326" stroke-width="15" stroke-linecap="round"/>
+    <circle cx="104" cy="80" r="7" fill="#F2C94C" stroke="#202326" stroke-width="4"/>
+  </g>
+</svg>
