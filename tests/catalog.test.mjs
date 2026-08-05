@@ -96,6 +96,21 @@ test("listProducts: pagination boundaries", () => {
   assert.equal(sizeClamped.pageSize, 20);
 });
 
+test("listProducts runs bounded SQL (no N+1)", () => {
+  const orig = sqlite.prepare.bind(sqlite);
+  let count = 0;
+  sqlite.prepare = (...args) => {
+    count += 1;
+    return orig(...args);
+  };
+  try {
+    listProducts({ locale: "cn" });
+  } finally {
+    sqlite.prepare = orig;
+  }
+  assert.ok(count <= 9, `SQL 条数 ${count} 应 <= 9`);
+});
+
 test("draft products are not readable", () => {
   assert.equal(listProducts({ locale: "cn" }).items.some((item) => item.id === "p3"), false);
   assert.equal(getHomeData("cn").popularProducts.some((item) => item.id === "p3"), false);
@@ -169,16 +184,26 @@ test("constraints: fourth SKU rejected and duplicate position rejected", () => {
   );
 });
 
-test("transaction rollback on invalid sku", () => {
+test("transaction rollback covers product, sku, images and tags", () => {
   assert.throws(() =>
     db.transaction((tx) => {
       tx.insert(products).values({ id: "rb-p", nameCn: "回滚商品", status: "published" }).run();
+      tx.insert(skus)
+        .values({ id: "rb-s1", productId: "rb-p", nameCn: "合法", tabLabelCn: "合法", priceCents: 100, position: 1, enabled: 1 })
+        .run();
+      tx.insert(skuImages)
+        .values({ id: "rb-img", skuId: "rb-s1", objectKey: "mock/rb-s1/1.svg", position: 1, width: 10, height: 10, mimeType: "image/svg+xml", byteSize: 10 })
+        .run();
+      sqlite.prepare("INSERT INTO product_tags (product_id, tag_id) VALUES (?, ?)").run("rb-p", "t1");
       tx.insert(skus)
         .values({ id: "rb-s", productId: "rb-p", nameCn: "非法", tabLabelCn: "非法", priceCents: 100, position: 4, enabled: 1 })
         .run();
     }),
   );
   assert.equal(sqlite.prepare("SELECT COUNT(*) c FROM products WHERE id='rb-p'").get().c, 0);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) c FROM skus WHERE product_id='rb-p'").get().c, 0);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) c FROM sku_images WHERE sku_id='rb-s1'").get().c, 0);
+  assert.equal(sqlite.prepare("SELECT COUNT(*) c FROM product_tags WHERE product_id='rb-p'").get().c, 0);
 });
 
 test("listEnabledTags returns enabled tags localized", () => {

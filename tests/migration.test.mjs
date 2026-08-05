@@ -1,6 +1,8 @@
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
-import { cleanup, sqlite } from "./helpers.mjs";
+import fs from "node:fs";
+import Database from "better-sqlite3";
+import { cleanup, databasePath, sqlite } from "./helpers.mjs";
 
 after(cleanup);
 
@@ -29,4 +31,21 @@ test("site_settings has exactly one row id=1 with defaults", () => {
   assert.equal(rows[0].id, 1);
   assert.equal(rows[0].contact_text_cn, "");
   assert.equal(rows[0].wechat_id, "");
+});
+
+test("integrity_check is ok", () => {
+  assert.equal(sqlite.prepare("PRAGMA integrity_check").get().integrity_check, "ok");
+});
+
+test("backup via VACUUM INTO passes integrity check", () => {
+  const backupPath = `${databasePath}.backup`;
+  sqlite.prepare("VACUUM INTO ?").run(backupPath);
+  const backup = new Database(backupPath);
+  try {
+    assert.equal(backup.prepare("PRAGMA integrity_check").get().integrity_check, "ok");
+    assert.equal(backup.prepare("SELECT COUNT(*) c FROM site_settings").get().c, 1);
+  } finally {
+    backup.close();
+    fs.rmSync(backupPath, { force: true });
+  }
 });
