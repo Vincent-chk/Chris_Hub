@@ -22,6 +22,10 @@
 
 返回 `{ items, page, pageSize, total, totalPages }`。`query` 只匹配 `products.name_cn/name_en`；`tagIds` 匹配任意标签；`sort` 为 `latest` 或 `hot`；`pageSize` 前台固定为 20，服务端再次限制不超过 20。
 
+### `listEnabledTags(locale)`
+
+返回启用标签 `[{ id, name }]`，按中文名称升序；`name` 为本地化名称（英文缺失回退中文）。用于商品列表页的标签筛选条件。
+
 ### `getProductDetail({ productId, locale })`
 
 返回一个已发布 Product 聚合：Product 的名称、介绍、标签，以及按 `position` 排序的最多 3 个启用 SKU。每个 SKU 返回 `name`、`tab`、`price` 和按 `position` 排序的图片 URL。不存在或未发布返回 404，不返回草稿部分数据。

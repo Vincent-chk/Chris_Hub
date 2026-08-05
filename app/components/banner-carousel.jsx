@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
-export default function BannerCarousel({ locale, banners }) {
+export default function BannerCarousel({ banners }) {
   const [active, setActive] = useState(0);
   const current = banners[active];
 
@@ -15,8 +15,8 @@ export default function BannerCarousel({ locale, banners }) {
   return (
     <div className="banner-shell" aria-label="Promotional banner">
       <picture>
-        <source media="(max-width: 680px)" srcSet={current[`${locale}Mobile`] || current[locale]} />
-        <img className="banner-image" src={current[locale]} alt="" />
+        <source media="(max-width: 680px)" srcSet={current.mobileUrl || current.desktopUrl} />
+        <img className="banner-image" src={current.desktopUrl} alt="" />
       </picture>
       <div className="banner-controls">
         <button className="icon-button banner-arrow" type="button" aria-label="Previous banner" title="Previous banner" onClick={() => setActive((active - 1 + banners.length) % banners.length)}><ChevronLeft size={18} /></button>

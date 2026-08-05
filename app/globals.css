@@ -117,8 +117,8 @@ h2 { font-size: clamp(31px, 4vw, 52px); font-weight: 500; letter-spacing: -0.02e
 .search-form input::placeholder { color: #969991; }
 .search-form button { border: 0; background: transparent; padding: 11px 3px 11px 12px; color: var(--teal); cursor: pointer; font-weight: 700; }
 .sort-control { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 999px; padding: 4px; color: var(--muted); }
-.sort-control button { border: 0; border-radius: 999px; background: transparent; padding: 7px 13px; color: var(--muted); cursor: pointer; font-size: 13px; }
-.sort-control button.is-active { background: var(--ink); color: #fffdf8; }
+.sort-control button, .sort-control a { border: 0; border-radius: 999px; background: transparent; padding: 7px 13px; color: var(--muted); cursor: pointer; font-size: 13px; }
+.sort-control button.is-active, .sort-control a.is-active { background: var(--ink); color: #fffdf8; }
 .filter-line { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; min-height: 47px; margin-bottom: 37px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; }
 .filter-line > span { display: inline-flex; align-items: center; gap: 7px; color: var(--ink); font-weight: 600; }
 .filter-options { display: flex; flex-wrap: wrap; gap: 7px; }
@@ -131,6 +131,7 @@ h2 { font-size: clamp(31px, 4vw, 52px); font-weight: 500; letter-spacing: -0.02e
 .pagination { display: flex; align-items: center; justify-content: center; gap: 22px; margin-top: 60px; color: var(--muted); font-size: 13px; }
 .pagination-button { display: inline-flex; align-items: center; gap: 7px; border: 0; background: transparent; color: var(--ink); cursor: pointer; font-weight: 700; }
 .pagination-button:disabled { color: #b9bab3; cursor: not-allowed; }
+.pagination-button.is-disabled { color: #b9bab3; cursor: not-allowed; }
 
 .detail-main { padding-top: 38px; padding-bottom: 120px; }
 .breadcrumbs { display: flex; align-items: center; gap: 9px; overflow: hidden; margin-bottom: 35px; color: var(--muted); font-size: 12px; white-space: nowrap; }
