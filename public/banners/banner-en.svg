@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 820">
+  <rect width="1400" height="820" fill="#f3e7d9"/>
+  <rect x="1050" y="0" width="350" height="820" fill="#dfeee9"/>
+  <circle cx="1120" cy="200" r="145" fill="#167f79"/>
+  <circle cx="1230" cy="660" r="125" fill="#d95c4c"/>
+  <g transform="translate(735 105) rotate(8)">
+    <rect width="360" height="580" rx="18" fill="#fffdf8" stroke="#202326" stroke-width="8"/>
+    <rect x="24" y="24" width="312" height="250" rx="10" fill="#167f79"/>
+    <circle cx="178" cy="144" r="76" fill="#f2c94c"/>
+    <path d="M125 158c35-85 84-75 117-4-49-13-67 10-117 4Z" fill="#202326"/>
+    <rect x="24" y="310" width="210" height="12" rx="6" fill="#202326"/>
+    <rect x="24" y="345" width="258" height="8" rx="4" fill="#dedbd2"/>
+    <rect x="24" y="380" width="190" height="8" rx="4" fill="#dedbd2"/>
+    <text x="24" y="520" fill="#d95c4c" font-family="Arial, sans-serif" font-size="28" font-weight="700" letter-spacing="7">CARD NOTES</text>
+  </g>
+  <text x="75" y="690" fill="#202326" font-family="Arial, sans-serif" font-size="54" font-weight="700" letter-spacing="9">CHRIS HUB</text>
+  <text x="80" y="735" fill="#536863" font-family="Arial, sans-serif" font-size="20" letter-spacing="4">A QUIETER HOME FOR CARDS</text>
+</svg>

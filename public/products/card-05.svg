@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 860">
+  <rect width="720" height="860" fill="#dbe4ec"/>
+  <rect x="58" y="55" width="604" height="750" rx="22" fill="#fffdf8" stroke="#202326" stroke-width="9"/>
+  <rect x="92" y="91" width="536" height="355" rx="13" fill="#dfeee9"/>
+  <circle cx="358" cy="260" r="120" fill="#167f79"/>
+  <path d="M250 293c57-138 161-128 219-28-73-19-117 42-219 28Z" fill="#f2c94c"/>
+  <rect x="94" y="500" width="245" height="17" rx="8" fill="#202326"/>
+  <rect x="94" y="550" width="410" height="10" rx="5" fill="#d8d8ce"/>
+  <rect x="94" y="580" width="350" height="10" rx="5" fill="#d8d8ce"/>
+  <text x="94" y="711" fill="#167f79" font-family="Arial, sans-serif" font-size="31" font-weight="700" letter-spacing="7">CHRIS HUB</text>
+  <text x="94" y="753" fill="#70756f" font-family="Arial, sans-serif" font-size="17" letter-spacing="4">ARCHIVE 05</text>
+</svg>

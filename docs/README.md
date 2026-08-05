@@ -14,6 +14,7 @@
 - [数据调用契约](./technical/data-access-contract.md)
 - [数据库架构](./technical/database-architecture.md)
 - [部署指南](./technical/deployment-guide.md)
+- [架构演进规划](./technical/architecture-evolution-plan.md)
 - [可执行实施方案](./technical/execution-plan.md)
 
 阅读顺序建议：先读主方案规划，再按实现阶段阅读技术执行方案。
