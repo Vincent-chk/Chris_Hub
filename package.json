@@ -7,8 +7,8 @@
     "build": "next build",
     "start": "next start",
     "test": "node --test tests/",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:generate": "drizzle-kit generate --config=drizzle.config.mjs",
+    "db:migrate": "drizzle-kit migrate --config=drizzle.config.mjs",
     "db:seed": "node lib/seed/seed.js"
   },
   "dependencies": {
