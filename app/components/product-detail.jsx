@@ -6,7 +6,8 @@ import { useState } from "react";
 import ContactModal from "@/app/components/contact-modal";
 import SiteFooter from "@/app/components/site-footer";
 import SiteHeader from "@/app/components/site-header";
-import { copy, localized } from "@/lib/i18n";
+import { copy } from "@/lib/i18n";
+import { formatPriceCents } from "@/lib/money";
 
 export default function ProductDetail({ locale, product }) {
   const text = copy(locale);
@@ -16,7 +17,7 @@ export default function ProductDetail({ locale, product }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const sku = product.skus[skuIndex];
   const image = sku.detailImages[imageIndex];
-  const productTitle = localized(product.name, locale);
+  const productTitle = product.name;
 
   function selectSku(index) {
     setSkuIndex(index);
@@ -35,16 +36,16 @@ export default function ProductDetail({ locale, product }) {
         <div className="detail-layout">
           <section className="detail-info">
             <div className="section-label">{text.selectedSku} <span>{skuIndex + 1} / {product.skus.length}</span></div>
-            <h1>{localized(sku.name, locale)}</h1>
-            <div className="detail-price"><span>¥{sku.price}</span>{product.skus.length > 1 && <small>{localized(sku.tab, locale)}</small>}</div>
-            {product.skus.length > 1 && <div className="sku-tabs" role="tablist" aria-label={text.selectedSku}>{product.skus.map((item, index) => <button key={item.id} type="button" role="tab" aria-selected={index === skuIndex} className={index === skuIndex ? "is-active" : ""} onClick={() => selectSku(index)}>{localized(item.tab, locale)}</button>)}</div>}
-            <p className="detail-description">{localized(product.description, locale)}</p>
+            <h1>{sku.name}</h1>
+            <div className="detail-price"><span>¥{formatPriceCents(sku.price)}</span>{product.skus.length > 1 && <small>{sku.tab}</small>}</div>
+            {product.skus.length > 1 && <div className="sku-tabs" role="tablist" aria-label={text.selectedSku}>{product.skus.map((item, index) => <button key={item.id} type="button" role="tab" aria-selected={index === skuIndex} className={index === skuIndex ? "is-active" : ""} onClick={() => selectSku(index)}>{item.tab}</button>)}</div>}
+            <p className="detail-description">{product.description}</p>
             <button className="primary-button detail-contact" type="button" onClick={() => setContactOpen(true)}><MessageCircle size={17} /> {text.contactAction}</button>
             <div className="detail-note">{locale === "cn" ? "价格为人民币，具体规格以当前选中的 SKU 为准。" : "Prices are shown in CNY. The selected SKU determines the current specification."}</div>
           </section>
           <section className="gallery" aria-label="Product images">
             <div className="gallery-main">
-              <img src={image} alt={localized(sku.name, locale)} />
+              <img src={image} alt={sku.name} />
               <button className="icon-button gallery-zoom" type="button" aria-label="View image" title="View image" onClick={() => setLightboxOpen(true)}><ZoomIn size={18} /></button>
               {sku.detailImages.length > 1 && <><button className="icon-button gallery-arrow gallery-arrow-left" type="button" aria-label="Previous image" title="Previous image" onClick={() => shiftImage(-1)}><ChevronLeft size={18} /></button><button className="icon-button gallery-arrow gallery-arrow-right" type="button" aria-label="Next image" title="Next image" onClick={() => shiftImage(1)}><ChevronRight size={18} /></button></>}
             </div>
@@ -54,7 +55,7 @@ export default function ProductDetail({ locale, product }) {
       </main>
       <SiteFooter locale={locale} />
       {contactOpen && <ContactModal locale={locale} onClose={() => setContactOpen(false)} />}
-      {lightboxOpen && <div className="lightbox" role="dialog" aria-modal="true" onClick={() => setLightboxOpen(false)}><button className="icon-button lightbox-close" type="button" aria-label={text.close} title={text.close} onClick={() => setLightboxOpen(false)}>×</button><img src={image} alt={localized(sku.name, locale)} onClick={(event) => event.stopPropagation()} /></div>}
+      {lightboxOpen && <div className="lightbox" role="dialog" aria-modal="true" onClick={() => setLightboxOpen(false)}><button className="icon-button lightbox-close" type="button" aria-label={text.close} title={text.close} onClick={() => setLightboxOpen(false)}>×</button><img src={image} alt={sku.name} onClick={(event) => event.stopPropagation()} /></div>}
     </div>
   );
 }

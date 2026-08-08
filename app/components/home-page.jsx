@@ -6,11 +6,9 @@ import ProductGrid from "@/app/components/product-grid";
 import SiteFooter from "@/app/components/site-footer";
 import SiteHeader from "@/app/components/site-header";
 import { copy } from "@/lib/i18n";
-import { BANNERS, PRODUCTS } from "@/lib/mock-data";
 
-export default function HomePage({ locale }) {
+export default function HomePage({ locale, banners, popularProducts }) {
   const text = copy(locale);
-  const popular = [...PRODUCTS].sort((a, b) => b.viewCount - a.viewCount || b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
   return (
     <div className="site-frame">
       <SiteHeader locale={locale} />
@@ -22,7 +20,7 @@ export default function HomePage({ locale }) {
             <p>{text.heroBody}</p>
             <Link className="text-link" href={`/${locale}/products`}>{text.explore} <ArrowRight size={16} /></Link>
           </div>
-          <BannerCarousel locale={locale} banners={BANNERS} />
+          <BannerCarousel banners={banners} />
         </section>
 
         <section className="brand-section section-pad">
@@ -38,7 +36,7 @@ export default function HomePage({ locale }) {
             <div><div className="section-label">02 <span>{text.hotTitle}</span></div><h2>{text.hotTitle}</h2><p>{text.hotBody}</p></div>
             <Link className="text-link" href={`/${locale}/products`}>{text.viewAll} <ArrowRight size={16} /></Link>
           </div>
-          <ProductGrid products={popular} locale={locale} />
+          <ProductGrid products={popularProducts} locale={locale} />
         </section>
 
         <ContactSection locale={locale} />

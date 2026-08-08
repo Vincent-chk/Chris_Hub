@@ -2,7 +2,7 @@
 
 ## 1. 目标
 
-本方案覆盖 Chris Hub 用户前台的第一版可运行实现。前台只读取已发布商品和站点展示配置，不承担商品编辑、支付、订单或用户身份功能。当前仓库中的页面使用 `lib/mock-data.js` 完成视觉原型；真实数据库接入时只替换数据访问边界，不重写页面结构。
+本方案覆盖 Chris Hub 用户前台的第一版可运行实现。前台只读取已发布商品和站点展示配置，不承担商品编辑、支付、订单或用户身份功能。阶段 A 使用 `lib/mock-data.js` 完成视觉原型；阶段 B 起前台已接入真实数据层（SQLite + Drizzle + repository），`lib/mock-data.js` 仅保留给种子数据使用。数据访问边界见 [data-access-contract.md](./data-access-contract.md)。
 
 ## 2. 技术栈
 
