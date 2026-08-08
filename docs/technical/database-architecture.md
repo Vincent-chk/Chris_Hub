@@ -120,6 +120,11 @@ SKU 只能在所属 Product 编辑页中维护，不拥有独立页面、搜索�
 | `price_cents` | INTEGER | NOT NULL，CHECK >= 0 | 人民币分 |
 | `position` | INTEGER | NOT NULL，CHECK BETWEEN 1 AND 3 | 展示顺序和默认项 |
 | `enabled` | INTEGER | NOT NULL，CHECK IN (0,1) | 是否在前台可选 |
+| `card_image_object_key` | TEXT | NULL，发布时必填 | 列表缩略图 OSS Key |
+| `card_image_width` | INTEGER | NULL，CHECK > 0 | 列表缩略图宽度 |
+| `card_image_height` | INTEGER | NULL，CHECK > 0 | 列表缩略图高度 |
+| `card_image_mime_type` | TEXT | NULL | 仅允许 JPEG、PNG、WebP |
+| `card_image_byte_size` | INTEGER | NULL，CHECK > 0 | 列表缩略图文件大小 |
 
 数据库约束：
 
@@ -129,14 +134,18 @@ UNIQUE (product_id, position)
 
 `position` 只能是 1、2、3，并且同一 Product 内不可重复，因此数据库层天然限制最多 3 个 SKU。排序第一的启用 SKU 是默认 SKU。
 
+列表缩略图是 SKU 的单图（`card_image_*` 列），详情大图保存在 `sku_images`。发布校验要求启用 SKU 的 `card_image_*` 全部非空，且 `sku_images` 至少一行。列表缩略图与详情大图在上传时都必须通过图片规范校验（见 §8.1）。
+
 ### 3.5 `sku_images`
+
+本表只保存 SKU 的**详情大图组**；列表缩略图作为 `skus.card_image_*` 列保存，不进入本表。详情页缩略图导航由详情大图派生显示，不单独存储。
 
 | 字段 | 类型 | 约束 | 用途 |
 | --- | --- | --- | --- |
 | `id` | TEXT | PK | UUID |
 | `sku_id` | TEXT | NOT NULL，FK -> skus.id，ON DELETE CASCADE | 所属 SKU |
 | `object_key` | TEXT | NOT NULL，UNIQUE | OSS 对象 Key |
-| `position` | INTEGER | NOT NULL，CHECK >= 1 | 图片顺序，1 为主图 |
+| `position` | INTEGER | NOT NULL，CHECK >= 1 | 详情大图组内顺序，1 为该组主图 |
 | `width` | INTEGER | NOT NULL，CHECK > 0 | 原图宽度 |
 | `height` | INTEGER | NOT NULL，CHECK > 0 | 原图高度 |
 | `mime_type` | TEXT | NOT NULL | 仅允许 JPEG、PNG、WebP |
@@ -278,16 +287,17 @@ Product 是写入聚合根。保存商品时使用一个数据库事务：
 ## 8. OSS 与数据库一致性
 
 SQLite 事务不能覆盖 OSS，因此使用“先上传、后引用；先删引用、后删对象”的顺序。
+图片比例、最小尺寸、格式和大小上限以 `lib/image-specs.js` 为唯一事实源，业务规范见 [development-plan.md §11.6](../development-plan.md)。
 
 ### 8.1 新增图片
 
-1. 带正确 `accessKey` 的服务端接口生成唯一 object key 和短期 PUT 凭证。
-2. 浏览器直接上传 OSS。
-3. 服务端检查对象存在、类型和大小，并取得图片尺寸。
-4. Product 保存事务写入 `sku_images` 引用。
+1. 带正确 `accessKey` 的服务端接口生成唯一 object key 和短期 PUT 凭证，限定对象前缀、文件类型和大小。
+2. 管理员在浏览器中选择文件；中台按图片规范打开固定比例裁切器（自动居中裁切，可缩放/平移调整），用户确认后将裁剪后的最终文件直传 OSS。
+3. 服务端检查对象存在、类型、大小、尺寸与比例（容差 ±2px），不符合规范的请求拒绝并返回错误。
+4. Product 保存事务写入 `skus.card_image_*`（列表缩略图）与 `sku_images`（详情大图组）引用。
 5. 如果数据库保存失败，立即尝试删除本次新上传且未被引用的对象，并记录失败 Key。
 
-对象 Key 使用受控业务前缀，例如 `sku/`、`banner/` 和 `site/`，不接受管理员自行提交任意 Bucket 路径。
+对象 Key 使用受控业务前缀，例如 `sku/<skuId>/card-<id>.<ext>`（列表缩略图）、`sku/<skuId>/<imageId>.<ext>`（详情大图）、`banner/` 和 `site/`，不接受管理员自行提交任意 Bucket 路径。
 
 ### 8.2 删除或替换图片
 
