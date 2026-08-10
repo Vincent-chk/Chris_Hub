@@ -7,6 +7,7 @@ import {
   deleteBannerImage,
   listBannerPurpose,
   listBanners,
+  publishBanners,
   reorderBannerImages,
   updateBannerImage,
 } from "../lib/repositories/admin.js";
@@ -110,4 +111,55 @@ test("deleteBannerImage: 删除行并清理对象；不存在返回 false", asyn
   assert.equal(listBannerPurpose("en-mobile").some((row) => row.id === created.id), false);
   assert.deepEqual(cleaned, [created.objectKey]);
   assert.equal(await deleteBannerImage(created.id, { cleanupObjects: async () => {} }), false);
+});
+
+test("publishBanners: 空发布清空该用途；新建/删除/替换/排序一次性生效并清理旧对象", async () => {
+  const a = await createBannerImage({ purpose: "cn-desktop", image: img() }, { validateImage: VALIDATE_STUB });
+  const b = await createBannerImage({ purpose: "cn-desktop", image: img() }, { validateImage: VALIDATE_STUB });
+  const cleaned = [];
+
+  // 保留 b、删除 a、替换 b 的图、新增 c、重排为 [c, b]
+  const newKey = img().objectKey;
+  const result = await publishBanners(
+    {
+      "cn-desktop": [{ objectKey: newKey }, { id: b.id, objectKey: img().objectKey }],
+      "en-desktop": [],
+      "cn-mobile": [],
+      "en-mobile": [],
+    },
+    { validateImage: VALIDATE_STUB, cleanupObjects: async (keys) => cleaned.push(...keys) },
+  );
+
+  const list = listBannerPurpose("cn-desktop");
+  assert.equal(list.length, 2);
+  assert.equal(list[0].objectKey, newKey);
+  assert.equal(list[0].sortOrder, 1);
+  assert.equal(list[1].id, b.id);
+  assert.equal(list[1].sortOrder, 2);
+  assert.ok(!list.some((row) => row.id === a.id));
+  assert.ok(cleaned.includes(a.objectKey));
+  assert.ok(result.length >= 2);
+});
+
+test("publishBanners: 超过上限 / 非法用途 / 不存在 id 拒绝", async () => {
+  const tooMany = Array.from({ length: 6 }, () => ({ objectKey: img().objectKey }));
+  await assert.rejects(
+    publishBanners({ "cn-desktop": tooMany }, { validateImage: VALIDATE_STUB }),
+    /已达上限/,
+  );
+  await assert.rejects(
+    publishBanners({ avatar: [] }, { validateImage: VALIDATE_STUB }),
+    /不支持的用途/,
+  );
+  await assert.rejects(
+    publishBanners(
+      { "cn-desktop": [{ id: "not-exist", objectKey: img().objectKey }] },
+      { validateImage: VALIDATE_STUB },
+    ),
+    /不存在的 Banner 图/,
+  );
+  await assert.rejects(
+    publishBanners(null, { validateImage: VALIDATE_STUB }),
+    /缺少发布内容/,
+  );
 });

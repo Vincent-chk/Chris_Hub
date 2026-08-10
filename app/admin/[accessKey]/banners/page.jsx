@@ -12,7 +12,7 @@ export default async function AdminBanners({ params }) {
     <section>
       <h1 className="admin-title">Banner 管理</h1>
       <p className="admin-lead">
-        最多 5 张；中文与英文桌面图必填，移动图可选（未上传时前台回退对应语言桌面图）。
+        每个用途最多 5 张；编辑为本地暂存，点击"保存并发布"后生效，点击"取消"恢复原样。
       </p>
       <BannerManager accessKey={accessKey} />
     </section>

@@ -5,6 +5,7 @@ import { GET as listGet, POST as createPost } from "../app/admin/[accessKey]/api
 import { POST as updatePost } from "../app/admin/[accessKey]/api/banners/[bannerId]/route.js";
 import { POST as deletePost } from "../app/admin/[accessKey]/api/banners/[bannerId]/delete/route.js";
 import { POST as reorderPost } from "../app/admin/[accessKey]/api/banners/reorder/route.js";
+import { POST as publishPost } from "../app/admin/[accessKey]/api/banners/publish/route.js";
 import { MAX_BANNERS_PER_PURPOSE, createBannerImage } from "../lib/repositories/admin.js";
 
 const KEY = "c1-test-entry-key-0123456789";
@@ -69,6 +70,10 @@ test("banners: 错误 accessKey 一律 404", async () => {
     );
     assert.equal(
       (await call(reorderPost, "/admin/wrong-key/api/banners/reorder", { body: { purpose: "cn-desktop", ids: [] }, accessKey: "wrong-key" })).status,
+      404,
+    );
+    assert.equal(
+      (await call(publishPost, "/admin/wrong-key/api/banners/publish", { body: { purposes: {} }, accessKey: "wrong-key" })).status,
       404,
     );
   } finally {
@@ -145,6 +150,28 @@ test("banners: 更新/删除不存在 404；reorder 非法参数 400", async () 
       (await call(reorderPost, `/admin/${KEY}/api/banners/reorder`, { body: { purpose: "cn-desktop", ids: ["not-exist"] } })).status,
       400,
     );
+  } finally {
+    restoreEnv();
+  }
+});
+
+test("banners: publish 缺内容 400；空发布 200；非法用途 400", async () => {
+  setEnv({ ADMIN_ENTRY_KEY: KEY });
+  try {
+    const missing = await call(publishPost, `/admin/${KEY}/api/banners/publish`, { body: {} });
+    assert.equal(missing.status, 400);
+    assert.match((await missing.json()).error, /缺少发布内容/);
+
+    const empty = await call(publishPost, `/admin/${KEY}/api/banners/publish`, {
+      body: { purposes: { "cn-desktop": [], "en-desktop": [], "cn-mobile": [], "en-mobile": [] } },
+    });
+    assert.equal(empty.status, 200);
+    assert.ok(Array.isArray((await empty.json()).items));
+
+    const invalid = await call(publishPost, `/admin/${KEY}/api/banners/publish`, {
+      body: { purposes: { avatar: [] } },
+    });
+    assert.equal(invalid.status, 400);
   } finally {
     restoreEnv();
   }

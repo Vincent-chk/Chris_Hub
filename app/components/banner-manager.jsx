@@ -12,6 +12,7 @@ const PURPOSES = [
 
 export default function BannerManager({ accessKey }) {
   const [groups, setGroups] = useState({});
+  const [committed, setCommitted] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState(null);
@@ -31,6 +32,7 @@ export default function BannerManager({ accessKey }) {
         if (next[item.purpose]) next[item.purpose].push(item);
       }
       setGroups(next);
+      setCommitted(JSON.stringify(next));
     } catch (err) {
       showToast("error", err?.message || "读取 Banner 失败");
     } finally {
@@ -43,53 +45,75 @@ export default function BannerManager({ accessKey }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessKey]);
 
-  async function run(action) {
+  const dirty = loaded && JSON.stringify(groups) !== committed;
+
+  // 离开页面时若有未发布修改，提示用户（暂存态不会写入数据库，页面关闭即丢弃）
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (event) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
+
+  // ---- 以下操作只修改本地暂存态，不触库 ----
+  function addImage(purpose, meta) {
+    setGroups((prev) => ({ ...prev, [purpose]: [...(prev[purpose] || []), meta] }));
+  }
+
+  function deleteImage(purpose, row) {
+    setGroups((prev) => ({
+      ...prev,
+      [purpose]: (prev[purpose] || []).filter((item) =>
+        row.id ? item.id !== row.id : item.objectKey !== row.objectKey,
+      ),
+    }));
+  }
+
+  function replaceImage(purpose, row, meta) {
+    setGroups((prev) => ({
+      ...prev,
+      [purpose]: (prev[purpose] || []).map((item) => {
+        const same = row.id ? item.id === row.id : item.objectKey === row.objectKey;
+        return same ? { ...item, ...meta } : item;
+      }),
+    }));
+  }
+
+  function reorderImages(purpose, nextRows) {
+    setGroups((prev) => ({ ...prev, [purpose]: nextRows }));
+  }
+
+  async function publish() {
     setBusy(true);
     try {
-      await action();
+      const res = await fetch(`/admin/${encodeURIComponent(accessKey)}/api/banners/publish`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ purposes: groups }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `发布失败（${res.status}）`);
       await load();
+      showToast("ok", "已保存并发布");
     } catch (err) {
-      showToast("error", err?.message || "保存失败");
+      showToast("error", err?.message || "发布失败");
     } finally {
       setBusy(false);
     }
   }
 
-  async function post(path, body) {
-    const res = await fetch(`/admin/${encodeURIComponent(accessKey)}${path}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body || {}),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data?.error || `请求失败（${res.status}）`);
-    return data;
-  }
-
-  function addImage(purpose, meta) {
-    return run(() =>
-      post(`/api/banners`, { purpose, objectKey: meta.objectKey, checksum: meta.checksum }).then(() =>
-        showToast("ok", "Banner 图已添加"),
-      ),
-    );
-  }
-
-  function replaceImage(purpose, row, meta) {
-    return run(() =>
-      post(`/api/banners/${row.id}`, { objectKey: meta.objectKey, checksum: meta.checksum }).then(() =>
-        showToast("ok", "Banner 图已替换"),
-      ),
-    );
-  }
-
-  function deleteImage(purpose, row) {
-    return run(() =>
-      post(`/api/banners/${row.id}/delete`).then(() => showToast("ok", "Banner 图已删除")),
-    );
-  }
-
-  function reorderImages(purpose, ids) {
-    return run(() => post(`/api/banners/reorder`, { purpose, ids }).then(() => showToast("ok", "顺序已更新")));
+  async function cancel() {
+    if (dirty && !window.confirm("放弃未发布的修改？")) return;
+    setBusy(true);
+    try {
+      await load();
+      showToast("ok", "已取消修改，恢复为已发布内容");
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (!loaded) {
@@ -98,6 +122,30 @@ export default function BannerManager({ accessKey }) {
 
   return (
     <div className="admin-upload-area">
+      <div className="admin-card admin-publish-bar">
+        <div className="admin-form-actions">
+          <button
+            type="button"
+            className="admin-check-button"
+            onClick={publish}
+            disabled={busy || !dirty}
+          >
+            {busy ? "处理中…" : "保存并发布"}
+          </button>
+          <button
+            type="button"
+            className="admin-check-button admin-button-ghost"
+            onClick={cancel}
+            disabled={busy || !dirty}
+          >
+            取消
+          </button>
+          <span className="admin-hint">
+            {dirty ? "有未发布的修改（仅暂存，点击“保存并发布”后前台才生效）" : "暂无未发布修改"}
+          </span>
+        </div>
+      </div>
+
       {PURPOSES.map((purpose) => (
         <BannerPurposeModule
           key={purpose.id}
@@ -110,7 +158,7 @@ export default function BannerManager({ accessKey }) {
           busy={busy}
           onAdd={(meta) => addImage(purpose.id, meta)}
           onDelete={(row) => deleteImage(purpose.id, row)}
-          onReorder={(ids) => reorderImages(purpose.id, ids)}
+          onReorder={(nextRows) => reorderImages(purpose.id, nextRows)}
           onReplace={(row, meta) => replaceImage(purpose.id, row, meta)}
           onLimit={() => showToast("error", "该用途 Banner 数量已达上限（5 张），可先删除旧图后再添加")}
         />
