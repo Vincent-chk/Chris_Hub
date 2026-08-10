@@ -295,6 +295,15 @@ h2 { font-size: clamp(31px, 4vw, 52px); font-weight: 500; letter-spacing: -0.02e
 .admin-toast { position: fixed; top: 22px; right: 22px; z-index: 90; border-radius: 8px; padding: 12px 18px; font-size: 14px; box-shadow: var(--shadow); max-width: 360px; }
 .admin-toast.is-ok { background: #1f7a4d; color: #fffdf8; }
 .admin-toast.is-error { background: #b3261e; color: #fffdf8; }
+.admin-banner-section { margin-bottom: 26px; }
+.admin-banner-section h2 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 12px; font-size: 16px; }
+.admin-banner-section h2 small { color: #b9bab3; font-size: 12px; font-weight: 400; }
+.admin-banner-slots { display: flex; flex-wrap: wrap; gap: 14px; }
+.admin-banner-slot { width: 200px; border: 1px solid var(--line); border-radius: 8px; background: #fbfaf5; padding: 12px; }
+.admin-banner-slot .admin-upload-field { margin-bottom: 0; }
+.admin-page-bar .admin-page-chips { display: flex; flex-wrap: wrap; gap: 12px; }
+.admin-page-chip { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 8px; background: #fbfaf5; padding: 10px 12px; font-size: 13px; }
+.admin-page-chip .admin-checkbox { margin: 0; }
 
 @media (max-width: 760px) {
   .admin-body { grid-template-columns: 1fr; }
@@ -304,4 +313,5 @@ h2 { font-size: clamp(31px, 4vw, 52px); font-weight: 500; letter-spacing: -0.02e
   .admin-crop-box { height: 300px; }
   .admin-grid { grid-template-columns: 1fr; }
   .admin-card { padding: 18px 16px; }
+  .admin-banner-slot { width: 100%; }
 }

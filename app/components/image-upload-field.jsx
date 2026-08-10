@@ -13,6 +13,7 @@ export default function ImageUploadField({
   images,
   onChange,
   getSkuId = () => undefined,
+  compact = false,
 }) {
   const spec = IMAGE_SPECS[specId];
   const sourceImgRef = useRef(null);
@@ -114,7 +115,7 @@ export default function ImageUploadField({
 
   return (
     <div className="admin-upload-field">
-      <label>{label}（{spec.ratio.width}:{spec.ratio.height}，最小 {spec.minWidth}×{spec.minHeight}）</label>
+      <label>{compact ? label : `${label}（${spec.ratio.width}:${spec.ratio.height}，最小 ${spec.minWidth}×${spec.minHeight}）`}</label>
 
       {images.length > 0 && (
         <div className="admin-thumb-list">
