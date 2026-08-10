@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { copy, switchLocalePath } from "@/lib/i18n";
 
-export default function SiteHeader({ locale }) {
+export default function SiteHeader({ locale, logoUrl }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const text = copy(locale);
@@ -17,7 +17,7 @@ export default function SiteHeader({ locale }) {
     <header className="site-header">
       <div className="header-inner">
         <Link className="brand-lockup" href={`/${locale}`} onClick={() => setOpen(false)}>
-          <img src="/brand-mark.svg" alt="" className="brand-mark" />
+          <img src={logoUrl || "/brand-mark.svg"} alt="" className="brand-mark" />
           <span className="brand-copy">
             <strong>{locale === "cn" ? "克里斯卡社" : "Chris Hub"}</strong>
             <small>{locale === "cn" ? "Chris Hub" : "克里斯卡社"}</small>

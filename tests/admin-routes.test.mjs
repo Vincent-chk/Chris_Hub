@@ -5,6 +5,7 @@ import { GET as listGet, POST as savePost } from "../app/admin/[accessKey]/api/p
 import { GET as aggregateGet } from "../app/admin/[accessKey]/api/products/[productId]/route.js";
 import { GET as tagsGet, POST as tagsPost } from "../app/admin/[accessKey]/api/tags/route.js";
 import { GET as ossGet } from "../app/oss/[...key]/route.js";
+import { GET as settingsGet, POST as settingsPost } from "../app/admin/[accessKey]/api/site-settings/route.js";
 
 const KEY = "c1-test-entry-key-0123456789";
 const ENV_KEYS = ["ADMIN_ENTRY_KEY", "OSS_BUCKET", "OSS_REGION", "OSS_ACCESS_KEY_ID", "OSS_ACCESS_KEY_SECRET"];
@@ -54,6 +55,23 @@ function getTags(accessKey) {
 function createTag(accessKey, body) {
   return tagsPost(
     new Request(`http://localhost/admin/${accessKey}/api/tags`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+    { params: Promise.resolve({ accessKey }) },
+  );
+}
+
+function getSettings(accessKey) {
+  return settingsGet(new Request(`http://localhost/admin/${accessKey}/api/site-settings`), {
+    params: Promise.resolve({ accessKey }),
+  });
+}
+
+function saveSettings(accessKey, body) {
+  return settingsPost(
+    new Request(`http://localhost/admin/${accessKey}/api/site-settings`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
@@ -197,6 +215,48 @@ test("oss 代理: 非法前缀 404；环境缺失 500（不触发网络）", asy
   try {
     assert.equal((await ossProxy("evil/x.png")).status, 404);
     assert.equal((await ossProxy("banner/x.png")).status, 500);
+  } finally {
+    restoreEnv();
+  }
+});
+
+test("site-settings: 错误 Key 404；GET 200；缺微信号 400；保存成功 200", async () => {
+  setEnv({ ADMIN_ENTRY_KEY: KEY });
+  try {
+    assert.equal((await getSettings("wrong-key")).status, 404);
+    assert.equal((await saveSettings("wrong-key", { wechatId: "x" })).status, 404);
+
+    const getRes = await getSettings(KEY);
+    assert.equal(getRes.status, 200);
+    assert.equal(typeof (await getRes.json()).wechatId, "string");
+
+    const missing = await saveSettings(KEY, { wechatId: "  " });
+    assert.equal(missing.status, 400);
+
+    const ok = await saveSettings(KEY, {
+      wechatId: "ChrisHub_Cards",
+      contactTextCn: "联系说明",
+      contactTextEn: "Contact",
+      logo: null,
+      qr: null,
+    });
+    assert.equal(ok.status, 200);
+    const { settings } = await ok.json();
+    assert.equal(settings.wechatId, "ChrisHub_Cards");
+  } finally {
+    restoreEnv();
+  }
+});
+
+test("site-settings: 带图保存且 OSS 环境缺失返回 500（不触发网络）", async () => {
+  setEnv({ ADMIN_ENTRY_KEY: KEY });
+  try {
+    const res = await saveSettings(KEY, {
+      wechatId: "x",
+      logo: { objectKey: "site/logo.png", checksum: "abc" },
+      qr: null,
+    });
+    assert.equal(res.status, 500);
   } finally {
     restoreEnv();
   }

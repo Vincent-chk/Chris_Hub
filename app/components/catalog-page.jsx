@@ -8,7 +8,7 @@ import SiteFooter from "@/app/components/site-footer";
 import SiteHeader from "@/app/components/site-header";
 import { copy } from "@/lib/i18n";
 
-export default function CatalogPage({ locale, data, filters, tags }) {
+export default function CatalogPage({ locale, data, filters, tags, logoUrl }) {
   const text = copy(locale);
   const [query, setQuery] = useState(filters.query);
 
@@ -31,7 +31,7 @@ export default function CatalogPage({ locale, data, filters, tags }) {
 
   return (
     <div className="site-frame">
-      <SiteHeader locale={locale} />
+      <SiteHeader locale={locale} logoUrl={logoUrl} />
       <main className="catalog-main section-pad">
         <div className="catalog-intro"><div className="section-label">Collection <span>{text.navProducts}</span></div><h1>{text.navProducts}</h1><p>{locale === "cn" ? "按商品浏览，不按 SKU 拆分。" : "Browse by product, never by SKU."}</p></div>
         <div className="catalog-toolbar">

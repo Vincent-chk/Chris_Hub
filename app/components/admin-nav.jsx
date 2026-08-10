@@ -22,14 +22,19 @@ export default function AdminNav({ accessKey }) {
       >
         Banner 管理
       </Link>
-      <span className="admin-nav-item">网站设置</span>
+      <Link
+        className={`admin-nav-item ${isActive(`/admin/${accessKey}/site-settings`) ? "is-active" : ""}`}
+        href={`/admin/${accessKey}/site-settings`}
+      >
+        网站设置
+      </Link>
       <Link
         className={`admin-nav-item ${isActive(`/admin/${accessKey}/uploads`) ? "is-active" : ""}`}
         href={`/admin/${accessKey}/uploads`}
       >
         上传测试
       </Link>
-      <small className="admin-nav-note">标签 / 网站设置即将开放</small>
+      <small className="admin-nav-note">标签管理即将开放</small>
     </nav>
   );
 }

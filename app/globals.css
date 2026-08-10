@@ -107,6 +107,7 @@ h2 { font-size: clamp(31px, 4vw, 52px); font-weight: 500; letter-spacing: -0.02e
 .qr-placeholder::before { top: 11px; left: 11px; }
 .qr-placeholder::after { right: 11px; bottom: 11px; }
 .qr-placeholder i { right: 11px; top: 11px; }
+.qr-image { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
 .contact-details { display: flex; flex-direction: column; gap: 5px; }
 .contact-details span { color: var(--muted); font-size: 12px; }
 .contact-details strong { font-size: 18px; }
