@@ -49,13 +49,18 @@ h2 { font-size: clamp(31px, 4vw, 52px); font-weight: 500; letter-spacing: -0.02e
 .text-link svg { transition: transform 160ms ease; }
 .text-link:hover svg { transform: translateX(4px); }
 .banner-shell { position: relative; overflow: hidden; border-radius: 7px; background: #d9e4df; box-shadow: var(--shadow); }
-.banner-image { width: 100%; aspect-ratio: 1.72 / 1; object-fit: cover; }
+.banner-stack { position: relative; aspect-ratio: 1.72 / 1; }
+.banner-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.7s ease; }
+.banner-image.is-active { opacity: 1; }
 .banner-controls { position: absolute; right: 18px; bottom: 18px; left: 18px; display: flex; align-items: center; justify-content: space-between; }
 .icon-button { display: inline-grid; place-items: center; width: 38px; height: 38px; border: 1px solid rgba(32, 35, 38, 0.18); border-radius: 50%; background: rgba(255, 253, 248, 0.92); cursor: pointer; transition: border-color 160ms ease, background 160ms ease, transform 160ms ease; }
 .icon-button:hover { border-color: var(--teal); background: #fff; transform: translateY(-1px); }
 .banner-dots { display: flex; align-items: center; gap: 7px; }
 .banner-dot { width: 7px; height: 7px; border: 0; border-radius: 50%; background: rgba(255, 253, 248, 0.68); cursor: pointer; }
 .banner-dot.is-active { width: 24px; border-radius: 4px; background: var(--teal); }
+@media (prefers-reduced-motion: reduce) {
+  .banner-image { transition: none; }
+}
 
 .brand-section { display: grid; grid-template-columns: minmax(140px, 0.4fr) minmax(0, 1fr); gap: 40px; border-top: 1px solid var(--line); padding-top: 44px; padding-bottom: clamp(90px, 12vw, 170px); }
 .brand-intro { display: grid; grid-template-columns: 0.85fr 0.65fr; gap: clamp(30px, 9vw, 150px); align-items: start; }
@@ -181,7 +186,7 @@ h2 { font-size: clamp(31px, 4vw, 52px); font-weight: 500; letter-spacing: -0.02e
   .language-link { border-top: 1px solid var(--line); }
   .hero-section { display: flex; flex-direction: column; align-items: stretch; gap: 38px; padding-top: 52px; }
   h1 { font-size: clamp(40px, 12vw, 58px); }
-  .banner-image { aspect-ratio: 1.2 / 1; }
+  .banner-stack { aspect-ratio: 1.2 / 1; }
   .brand-section { grid-template-columns: 1fr; gap: 24px; padding-top: 30px; }
   .section-heading, .catalog-intro, .contact-section-inner { align-items: start; flex-direction: column; }
   .section-heading { gap: 17px; }

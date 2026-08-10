@@ -31,11 +31,20 @@ export default function BannerCarousel({ banners }) {
   }, [count]);
 
   if (!count) return null;
-  const current = list[active % count];
 
   return (
     <div className="banner-shell" aria-label="Promotional banner">
-      <img className="banner-image" src={current} alt="" />
+      <div className="banner-stack">
+        {list.map((url, index) => (
+          <img
+            key={`${url}-${index}`}
+            className={`banner-image${index === active ? " is-active" : ""}`}
+            src={url}
+            alt=""
+            aria-hidden={index !== active}
+          />
+        ))}
+      </div>
       <div className="banner-controls">
         <button className="icon-button banner-arrow" type="button" aria-label="Previous banner" title="Previous banner" onClick={() => setActive((active - 1 + count) % count)}><ChevronLeft size={18} /></button>
         <div className="banner-dots" role="tablist" aria-label="Banner selection">
