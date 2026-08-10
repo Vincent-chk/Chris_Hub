@@ -36,7 +36,7 @@
 
 1. [x] 实现服务端 `accessKey` 路径校验和中台基础壳，不建立账号密码（C1：`lib/admin/guard.js` 常量时间守卫 + `/admin/[accessKey]` 中台壳与上传凭证自检 + `POST /admin/[accessKey]/api/upload-token` 接口；错误 Key 一律 404，页面 noindex/no-store）。
 2. [x] 实现 Product 聚合编辑：Product 内维护 0-3 个 SKU，保存时单事务校验（C3：`lib/repositories/admin.js` 的 `saveProductAggregate` + `/admin/[accessKey]/products` 列表/新建/编辑页面与接口；含 `updated_at` 乐观锁、图片服务端复验、旧对象事务后清理、快速新建标签）。
-3. 实现标签、Banner、Logo、联系设置管理。
+3. [x] Banner 管理（C4：上限 5 张、中英桌面图必填、移动图可选、排序/启停/删除、前台即时生效）；标签管理页与网站设置（Logo/微信号/二维码）待后续任务。
 4. [x] 建立 `lib/image-specs.js` 图片规范注册表（各上传区比例、最小尺寸、格式、大小上限，前后端共用），规范见 development-plan §11.6。
 5. [x] 实现中台固定比例裁剪组件（自动居中裁切、可缩放/平移调整、用户确认后上传）与服务端图片校验（类型、大小、尺寸、比例容差 ±2px）。
 6. [x] 接入 OSS 上传凭证（签名直传地址，密钥不下发浏览器）、服务端校验与受限前缀删除接口（C2：`/admin/[accessKey]/uploads` 上传测试页可跑通"选图→裁剪→直传→校验→清理"全链路）；图片排序与孤儿对象检查随商品管理任务完成。

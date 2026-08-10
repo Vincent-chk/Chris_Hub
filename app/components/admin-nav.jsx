@@ -16,7 +16,12 @@ export default function AdminNav({ accessKey }) {
         商品管理
       </Link>
       <span className="admin-nav-item">标签管理</span>
-      <span className="admin-nav-item">Banner 管理</span>
+      <Link
+        className={`admin-nav-item ${isActive(`/admin/${accessKey}/banners`) ? "is-active" : ""}`}
+        href={`/admin/${accessKey}/banners`}
+      >
+        Banner 管理
+      </Link>
       <span className="admin-nav-item">网站设置</span>
       <Link
         className={`admin-nav-item ${isActive(`/admin/${accessKey}/uploads`) ? "is-active" : ""}`}
@@ -24,7 +29,7 @@ export default function AdminNav({ accessKey }) {
       >
         上传测试
       </Link>
-      <small className="admin-nav-note">标签 / Banner / 网站设置即将开放</small>
+      <small className="admin-nav-note">标签 / 网站设置即将开放</small>
     </nav>
   );
 }
