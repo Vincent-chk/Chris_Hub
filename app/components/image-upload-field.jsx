@@ -119,7 +119,7 @@ export default function ImageUploadField({
       {images.length > 0 && (
         <div className="admin-thumb-list">
           {images.map((image, index) => (
-            <div className="admin-thumb" key={image.objectKey}>
+            <div className="admin-thumb" key={image.objectKey || `img-${index}`}>
               <img src={previewUrl(image.objectKey)} alt="" />
               <span className="admin-thumb-tools">
                 {maxCount !== 1 && (
