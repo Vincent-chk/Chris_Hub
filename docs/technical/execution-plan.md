@@ -34,7 +34,7 @@
 
 ## 阶段 C：中台与 OSS
 
-1. 实现服务端 `accessKey` 路径校验和中台基础壳，不建立账号密码。
+1. [x] 实现服务端 `accessKey` 路径校验和中台基础壳，不建立账号密码（C1：`lib/admin/guard.js` 常量时间守卫 + `/admin/[accessKey]` 中台壳与上传凭证自检 + `POST /admin/[accessKey]/api/upload-token` 接口；错误 Key 一律 404，页面 noindex/no-store）。
 2. 实现 Product 聚合编辑：Product 内维护 0-3 个 SKU，保存时单事务校验。
 3. 实现标签、Banner、Logo、联系设置管理。
 4. 建立 `lib/image-specs.js` 图片规范注册表（各上传区比例、最小尺寸、格式、大小上限，前后端共用），规范见 development-plan §11.6。
