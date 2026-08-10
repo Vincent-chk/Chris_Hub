@@ -3,7 +3,13 @@
 import { useRef, useState } from "react";
 import Cropper from "react-easy-crop";
 import { IMAGE_SPECS, SPEC_TO_PURPOSE, listSpecs } from "@/lib/image-specs";
-import { MIME_TO_EXT, loadImage, uploadCroppedImage } from "@/lib/client-upload";
+import {
+  MIME_TO_EXT,
+  MAX_SOURCE_BYTES,
+  formatMegabytes,
+  loadImage,
+  uploadCroppedImage,
+} from "@/lib/client-upload";
 
 const TEST_SKU_ID = "test-sku";
 
@@ -41,8 +47,8 @@ export default function UploadTestArea({ accessKey }) {
       setMessage({ kind: "error", text: `文件类型不支持：需要 ${spec.formats.join("/")}` });
       return;
     }
-    if (file.size > spec.maxBytes) {
-      setMessage({ kind: "error", text: `文件 ${file.size} 字节超过上限 ${spec.maxBytes} 字节` });
+    if (file.size > MAX_SOURCE_BYTES) {
+      setMessage({ kind: "error", text: `源文件 ${formatMegabytes(file.size)}MB 过大（超过 40MB），请先压缩后再上传` });
       return;
     }
 
@@ -75,7 +81,7 @@ export default function UploadTestArea({ accessKey }) {
     setMessage(null);
     try {
       const purpose = SPEC_TO_PURPOSE[specId];
-      const meta = await uploadCroppedImage({
+      const { meta, compression } = await uploadCroppedImage({
         accessKey,
         specId,
         purpose,
@@ -86,7 +92,12 @@ export default function UploadTestArea({ accessKey }) {
         maxBytes: spec.maxBytes,
       });
       setResult(meta);
-      setMessage({ kind: "ok", text: `上传并校验成功：${meta.objectKey}` });
+      setMessage({
+        kind: "ok",
+        text: compression
+          ? `上传并校验成功，已自动压缩至 ${formatMegabytes(compression.finalSize)}MB（原 ${formatMegabytes(compression.originalSize)}MB）：${meta.objectKey}`
+          : `上传并校验成功：${meta.objectKey}`,
+      });
     } catch (err) {
       setMessage({ kind: "error", text: err?.message || "上传失败" });
     } finally {
