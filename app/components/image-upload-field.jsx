@@ -2,30 +2,34 @@
 
 import { useRef, useState } from "react";
 import Cropper from "react-easy-crop";
-import { IMAGE_SPECS, SPEC_TO_PURPOSE, listSpecs } from "@/lib/image-specs";
+import { IMAGE_SPECS, SPEC_TO_PURPOSE } from "@/lib/image-specs";
 import { MIME_TO_EXT, loadImage, uploadCroppedImage } from "@/lib/client-upload";
 
-const TEST_SKU_ID = "test-sku";
-
-export default function UploadTestArea({ accessKey }) {
-  const [specId, setSpecId] = useState("banner-desktop");
-  const [sourceUrl, setSourceUrl] = useState(null);
+export default function ImageUploadField({
+  accessKey,
+  specId,
+  label,
+  maxCount,
+  images,
+  onChange,
+  getSkuId = () => undefined,
+}) {
+  const spec = IMAGE_SPECS[specId];
   const sourceImgRef = useRef(null);
+  const [sourceUrl, setSourceUrl] = useState(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedPixels, setCroppedPixels] = useState(null);
-  const [message, setMessage] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState(null);
+  const [message, setMessage] = useState(null);
 
-  const spec = IMAGE_SPECS[specId];
+  const canAdd = images.length < maxCount;
 
-  function resetFile() {
+  function resetCrop() {
     if (sourceUrl) URL.revokeObjectURL(sourceUrl);
     setSourceUrl(null);
     sourceImgRef.current = null;
     setCroppedPixels(null);
-    setResult(null);
     setMessage(null);
   }
 
@@ -34,7 +38,6 @@ export default function UploadTestArea({ accessKey }) {
     event.target.value = "";
     if (!file) return;
     setMessage(null);
-    setResult(null);
 
     const ext = MIME_TO_EXT[file.type];
     if (!ext || !spec.formats.includes(ext)) {
@@ -69,23 +72,27 @@ export default function UploadTestArea({ accessKey }) {
     }
   }
 
-  async function upload() {
+  async function confirmUpload() {
     if (!sourceImgRef.current || !croppedPixels) return;
     setBusy(true);
     setMessage(null);
     try {
-      const purpose = SPEC_TO_PURPOSE[specId];
       const meta = await uploadCroppedImage({
         accessKey,
         specId,
-        purpose,
-        skuId: purpose === "card" || purpose === "detail" ? TEST_SKU_ID : undefined,
+        purpose: SPEC_TO_PURPOSE[specId],
+        skuId: getSkuId(),
         sourceImg: sourceImgRef.current,
         croppedPixels,
         exportFormat: spec.exportFormat,
       });
-      setResult(meta);
-      setMessage({ kind: "ok", text: `上传并校验成功：${meta.objectKey}` });
+      if (maxCount === 1) {
+        onChange([meta]);
+      } else {
+        onChange([...images, meta]);
+      }
+      resetCrop();
+      setMessage({ kind: "ok", text: "上传成功" });
     } catch (err) {
       setMessage({ kind: "error", text: err?.message || "上传失败" });
     } finally {
@@ -93,58 +100,57 @@ export default function UploadTestArea({ accessKey }) {
     }
   }
 
-  async function cleanup() {
-    if (!result?.objectKey) return;
-    setBusy(true);
-    try {
-      const res = await fetch(`/admin/${encodeURIComponent(accessKey)}/api/images/cleanup`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ objectKey: result.objectKey }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || `删除失败（${res.status}）`);
-      setMessage({ kind: "ok", text: `已删除测试对象：${result.objectKey}` });
-      setResult(null);
-    } catch (err) {
-      setMessage({ kind: "error", text: err?.message || "删除失败" });
-    } finally {
-      setBusy(false);
-    }
+  function removeAt(index) {
+    onChange(images.filter((_, i) => i !== index));
+  }
+
+  function move(index, delta) {
+    const next = [...images];
+    const target = index + delta;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
   }
 
   return (
-    <div className="admin-upload-area">
-      <div className="admin-upload-field">
-        <label htmlFor="upload-spec">上传区</label>
-        <select
-          id="upload-spec"
-          className="admin-upload-select"
-          value={specId}
-          onChange={(event) => {
-            setSpecId(event.target.value);
-            resetFile();
-          }}
-        >
-          {listSpecs().map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.label}（{item.ratio.width}:{item.ratio.height}，最小 {item.minWidth}×{item.minHeight}）
-            </option>
-          ))}
-        </select>
-      </div>
+    <div className="admin-upload-field">
+      <label>{label}（{spec.ratio.width}:{spec.ratio.height}，最小 {spec.minWidth}×{spec.minHeight}）</label>
 
-      <div className="admin-upload-field">
-        <label htmlFor="upload-file">选择图片</label>
+      {images.length > 0 && (
+        <div className="admin-thumb-list">
+          {images.map((image, index) => (
+            <div className="admin-thumb" key={image.objectKey}>
+              <img src={`/oss/${image.objectKey}`} alt="" />
+              <span className="admin-thumb-tools">
+                {maxCount !== 1 && (
+                  <>
+                    <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label="前移">
+                      ↑
+                    </button>
+                    <button type="button" onClick={() => move(index, 1)} disabled={index === images.length - 1} aria-label="后移">
+                      ↓
+                    </button>
+                  </>
+                )}
+                <button type="button" onClick={() => removeAt(index)} aria-label="删除">
+                  ×
+                </button>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {canAdd && (
         <input
-          id="upload-file"
           className="admin-upload-file"
           type="file"
           accept="image/jpeg,image/png,image/webp"
           onChange={onFileChange}
           disabled={busy}
         />
-      </div>
+      )}
+      {!canAdd && <small className="admin-hint">已达数量上限（{maxCount} 张）</small>}
 
       {sourceUrl && (
         <div className="admin-crop-card">
@@ -173,11 +179,11 @@ export default function UploadTestArea({ accessKey }) {
             <span>{zoom.toFixed(2)}x</span>
           </div>
           <div className="admin-upload-actions">
-            <button type="button" className="admin-check-button" onClick={upload} disabled={busy || !croppedPixels}>
-              {busy ? "处理中…" : "确认并上传"}
+            <button type="button" className="admin-check-button" onClick={confirmUpload} disabled={busy || !croppedPixels}>
+              {busy ? "上传中…" : "确认并上传"}
             </button>
-            <button type="button" className="admin-check-button admin-button-ghost" onClick={resetFile} disabled={busy}>
-              重新选择
+            <button type="button" className="admin-check-button admin-button-ghost" onClick={resetCrop} disabled={busy}>
+              取消
             </button>
           </div>
         </div>
@@ -185,20 +191,6 @@ export default function UploadTestArea({ accessKey }) {
 
       {message && (
         <p className={message.kind === "ok" ? "admin-check-ok" : "admin-check-error"}>{message.text}</p>
-      )}
-
-      {result && (
-        <div className="admin-result">
-          <h3>校验结果</h3>
-          <p>objectKey：{result.objectKey}</p>
-          <p>
-            尺寸：{result.width}×{result.height}（{result.format}）
-          </p>
-          <p>大小：{result.byteSize} 字节</p>
-          <button type="button" className="admin-check-button admin-button-ghost" onClick={cleanup} disabled={busy}>
-            删除测试对象
-          </button>
-        </div>
       )}
     </div>
   );
