@@ -44,6 +44,11 @@ await check("1. 获取 STS 临时凭证", async () => {
   return `${creds.objectKey} expires=${creds.expiresAt}`;
 });
 
+if (!creds) {
+  console.error("\n[ABORT] 未获取到临时凭证，跳过后续依赖步骤（请先修复 RAM 权限后重试）。");
+  process.exit(1);
+}
+
 await check("2. 临时凭证直传 PUT（目标 Key）", async () => {
   tempClient = new OSS({
     endpoint: `https://oss-${creds.region}.aliyuncs.com`,
