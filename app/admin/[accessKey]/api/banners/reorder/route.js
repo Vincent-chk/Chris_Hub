@@ -1,6 +1,9 @@
 // 中台 Banner 排序接口（阶段 C · C4）
 import { isValidAdminKey } from "../../../../../../lib/admin/guard.js";
-import { ValidationError, reorderBanners } from "../../../../../../lib/repositories/admin.js";
+import {
+  ValidationError,
+  reorderBannerImages,
+} from "../../../../../../lib/repositories/admin.js";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +23,7 @@ export async function POST(request, { params }) {
     return json({ error: "请求体必须是 JSON" }, 400);
   }
   try {
-    const items = reorderBanners(body?.ids);
+    const items = reorderBannerImages({ purpose: body?.purpose, ids: body?.ids });
     return json({ items });
   } catch (err) {
     if (err instanceof ValidationError) {

@@ -2,7 +2,7 @@
 import { isValidAdminKey } from "../../../../../../lib/admin/guard.js";
 import {
   ValidationError,
-  updateBanner,
+  updateBannerImage,
 } from "../../../../../../lib/repositories/admin.js";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +23,9 @@ export async function POST(request, { params }) {
     return json({ error: "请求体必须是 JSON" }, 400);
   }
   try {
-    const banner = await updateBanner(bannerId, body);
+    const banner = await updateBannerImage(bannerId, {
+      image: { objectKey: body?.objectKey, checksum: body?.checksum },
+    });
     if (!banner) {
       return json({ error: "Not Found" }, 404);
     }

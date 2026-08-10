@@ -1,6 +1,10 @@
 // 中台 Banner 列表与新建接口（阶段 C · C4）
 import { isValidAdminKey } from "../../../../../lib/admin/guard.js";
-import { ValidationError, createBanner, listBanners } from "../../../../../lib/repositories/admin.js";
+import {
+  ValidationError,
+  createBannerImage,
+  listBanners,
+} from "../../../../../lib/repositories/admin.js";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +37,10 @@ export async function POST(request, { params }) {
     return json({ error: "请求体必须是 JSON" }, 400);
   }
   try {
-    const banner = await createBanner(body);
+    const banner = await createBannerImage({
+      purpose: body?.purpose,
+      image: { objectKey: body?.objectKey, checksum: body?.checksum },
+    });
     return json({ banner });
   } catch (err) {
     if (err instanceof ValidationError) {

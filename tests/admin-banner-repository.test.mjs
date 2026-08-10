@@ -2,12 +2,13 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { cleanup } from "./helpers.mjs";
 import {
-  MAX_BANNERS,
-  createBanner,
-  deleteBanner,
+  MAX_BANNERS_PER_PURPOSE,
+  createBannerImage,
+  deleteBannerImage,
+  listBannerPurpose,
   listBanners,
-  reorderBanners,
-  updateBanner,
+  reorderBannerImages,
+  updateBannerImage,
 } from "../lib/repositories/admin.js";
 
 const VALIDATE_STUB = async ({ specId }) => ({
@@ -19,126 +20,94 @@ const VALIDATE_STUB = async ({ specId }) => ({
 });
 
 let keySeq = 0;
-function img(prefix) {
+function img() {
   keySeq += 1;
-  return { objectKey: `banner/accept-${prefix}-${keySeq}.png`, checksum: "abc" };
-}
-
-function bannerInput(overrides = {}) {
-  return {
-    desktopImageCn: img("cn"),
-    desktopImageEn: img("en"),
-    mobileImageCn: null,
-    mobileImageEn: null,
-    enabled: false,
-    ...overrides,
-  };
+  return { objectKey: `banner/accept-${keySeq}.png`, checksum: "abc" };
 }
 
 test.after(() => cleanup());
 
-test("createBanner: 新建成功且默认停用、sortOrder 递增", async () => {
-  const a = await createBanner(bannerInput(), { validateImage: VALIDATE_STUB });
-  const b = await createBanner(bannerInput(), { validateImage: VALIDATE_STUB });
-  assert.equal(a.enabled, false);
+test("createBannerImage: 按用途新建并递增 sortOrder", async () => {
+  const a = await createBannerImage({ purpose: "cn-desktop", image: img() }, { validateImage: VALIDATE_STUB });
+  const b = await createBannerImage({ purpose: "cn-desktop", image: img() }, { validateImage: VALIDATE_STUB });
+  assert.equal(a.purpose, "cn-desktop");
   assert.equal(a.sortOrder, 0);
   assert.equal(b.sortOrder, 1);
-  assert.equal(listBanners().length, 2);
+  assert.equal(listBannerPurpose("cn-desktop").length, 2);
+  assert.ok(listBanners().every((row) => row.objectKey && row.id));
 });
 
-test("createBanner: 缺中文桌面图拒绝", async () => {
+test("createBannerImage: 非法用途 / 缺图片对象拒绝", async () => {
   await assert.rejects(
-    createBanner(bannerInput({ desktopImageCn: null }), { validateImage: VALIDATE_STUB }),
-    /缺少中文桌面图/,
+    createBannerImage({ purpose: "avatar", image: img() }, { validateImage: VALIDATE_STUB }),
+    /不支持的用途/,
   );
-});
-
-test("createBanner: 缺英文桌面图拒绝", async () => {
   await assert.rejects(
-    createBanner(bannerInput({ desktopImageEn: null }), { validateImage: VALIDATE_STUB }),
-    /缺少英文桌面图/,
+    createBannerImage({ purpose: "cn-desktop", image: {} }, { validateImage: VALIDATE_STUB }),
+    /缺少图片对象/,
   );
 });
 
-test("createBanner: 移动图可选", async () => {
-  const created = await createBanner(
-    bannerInput({ mobileImageCn: img("mobile-cn"), mobileImageEn: img("mobile-en") }),
-    { validateImage: VALIDATE_STUB },
-  );
-  assert.ok(created.mobileImageCn.objectKey);
-  assert.ok(created.mobileImageEn.objectKey);
+test("createBannerImage: 移动图用途使用 banner-mobile 规范", async () => {
+  const created = await createBannerImage({ purpose: "cn-mobile", image: img() }, { validateImage: VALIDATE_STUB });
+  assert.equal(created.purpose, "cn-mobile");
+  assert.equal(listBannerPurpose("cn-mobile").length, 1);
 });
 
-test("updateBanner: 替换图片后仅清理不再引用的旧对象", async () => {
-  const created = await createBanner(bannerInput(), { validateImage: VALIDATE_STUB });
-  const oldCn = created.desktopImageCn.objectKey;
+test("createBannerImage: 同一用途超过 5 张上限拒绝", async () => {
+  const current = listBannerPurpose("en-desktop").length;
+  for (let i = current; i < MAX_BANNERS_PER_PURPOSE; i++) {
+    await createBannerImage({ purpose: "en-desktop", image: img() }, { validateImage: VALIDATE_STUB });
+  }
+  await assert.rejects(
+    createBannerImage({ purpose: "en-desktop", image: img() }, { validateImage: VALIDATE_STUB }),
+    /已达上限/,
+  );
+});
+
+test("updateBannerImage: 替换图片后仅清理旧对象；不存在返回 null", async () => {
+  const created = await createBannerImage({ purpose: "cn-desktop", image: img() }, { validateImage: VALIDATE_STUB });
   const cleaned = [];
-  const updated = await updateBanner(
+  const updated = await updateBannerImage(
     created.id,
-    {
-      ...bannerInput(),
-      desktopImageCn: img("cn-new"),
-      desktopImageEn: created.desktopImageEn,
-    },
-    {
-      validateImage: VALIDATE_STUB,
-      cleanupObjects: async (keys) => cleaned.push(...keys),
-    },
+    { image: img() },
+    { validateImage: VALIDATE_STUB, cleanupObjects: async (keys) => cleaned.push(...keys) },
   );
-  assert.ok(updated.desktopImageCn.objectKey !== oldCn);
-  assert.deepEqual(cleaned, [oldCn]);
+  assert.ok(updated.objectKey !== created.objectKey);
+  assert.deepEqual(cleaned, [created.objectKey]);
+  assert.equal(
+    await updateBannerImage("banner-not-exist", { image: img() }, { validateImage: VALIDATE_STUB }),
+    null,
+  );
 });
 
-test("updateBanner: 不存在返回 null", async () => {
-  const result = await updateBanner("banner-not-exist", bannerInput(), {
-    validateImage: VALIDATE_STUB,
-  });
-  assert.equal(result, null);
-});
-
-test("reorderBanners: 按数组顺序重排", () => {
-  const ids = listBanners()
-    .map((banner) => banner.id)
+test("reorderBannerImages: 按数组顺序重排；非法参数拒绝", () => {
+  const ids = listBannerPurpose("cn-desktop")
+    .map((row) => row.id)
     .reverse();
-  const reordered = reorderBanners(ids);
+  const reordered = reorderBannerImages({ purpose: "cn-desktop", ids });
   assert.deepEqual(
-    reordered.map((banner) => banner.id),
+    reordered.map((row) => row.id),
     ids,
   );
   assert.deepEqual(
-    reordered.map((banner) => banner.sortOrder),
+    reordered.map((row) => row.sortOrder),
     ids.map((_, index) => index + 1),
   );
+  assert.throws(() => reorderBannerImages({ purpose: "avatar", ids }), /不支持的用途/);
+  assert.throws(() => reorderBannerImages({ purpose: "cn-desktop", ids: [] }), /排序参数无效/);
+  assert.throws(() => reorderBannerImages({ purpose: "cn-desktop", ids: ["a", "a"] }), /不能重复/);
+  assert.throws(() => reorderBannerImages({ purpose: "cn-desktop", ids: ["not-exist"] }), /不存在的 Banner 图/);
 });
 
-test("reorderBanners: 非法参数拒绝", () => {
-  assert.throws(() => reorderBanners([]), /排序参数无效/);
-  assert.throws(() => reorderBanners(["a", "a"]), /不能重复/);
-  assert.throws(() => reorderBanners(["not-exist"]), /不存在的 Banner/);
-});
-
-test("deleteBanner: 删除行并清理独有对象；不存在返回 false", async () => {
-  const created = await createBanner(bannerInput(), { validateImage: VALIDATE_STUB });
+test("deleteBannerImage: 删除行并清理对象；不存在返回 false", async () => {
+  const created = await createBannerImage({ purpose: "en-mobile", image: img() }, { validateImage: VALIDATE_STUB });
   const cleaned = [];
-  const deleted = await deleteBanner(created.id, {
+  const deleted = await deleteBannerImage(created.id, {
     cleanupObjects: async (keys) => cleaned.push(...keys),
   });
   assert.equal(deleted, true);
-  assert.equal(listBanners().some((banner) => banner.id === created.id), false);
-  assert.ok(cleaned.includes(created.desktopImageCn.objectKey));
-  assert.equal(
-    await deleteBanner(created.id, { cleanupObjects: async () => {} }),
-    false,
-  );
-});
-
-test("createBanner: 超过 5 张上限拒绝", async () => {
-  const current = listBanners().length;
-  for (let i = current; i < MAX_BANNERS; i++) {
-    await createBanner(bannerInput(), { validateImage: VALIDATE_STUB });
-  }
-  await assert.rejects(
-    createBanner(bannerInput(), { validateImage: VALIDATE_STUB }),
-    /已达上限/,
-  );
+  assert.equal(listBannerPurpose("en-mobile").some((row) => row.id === created.id), false);
+  assert.deepEqual(cleaned, [created.objectKey]);
+  assert.equal(await deleteBannerImage(created.id, { cleanupObjects: async () => {} }), false);
 });

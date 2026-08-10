@@ -5,7 +5,7 @@ import { GET as listGet, POST as createPost } from "../app/admin/[accessKey]/api
 import { POST as updatePost } from "../app/admin/[accessKey]/api/banners/[bannerId]/route.js";
 import { POST as deletePost } from "../app/admin/[accessKey]/api/banners/[bannerId]/delete/route.js";
 import { POST as reorderPost } from "../app/admin/[accessKey]/api/banners/reorder/route.js";
-import { MAX_BANNERS, createBanner } from "../lib/repositories/admin.js";
+import { MAX_BANNERS_PER_PURPOSE, createBannerImage } from "../lib/repositories/admin.js";
 
 const KEY = "c1-test-entry-key-0123456789";
 const ENV_KEYS = ["ADMIN_ENTRY_KEY", "OSS_BUCKET", "OSS_REGION", "OSS_ACCESS_KEY_ID", "OSS_ACCESS_KEY_SECRET"];
@@ -43,64 +43,32 @@ function call(handler, path, { method = "POST", body, accessKey = KEY, params = 
 }
 
 let seq = 0;
-function img(prefix) {
+function img() {
   seq += 1;
-  return { objectKey: `banner/route-${prefix}-${seq}.png`, checksum: "abc" };
-}
-
-function bannerBody(overrides = {}) {
-  return {
-    desktopImageCn: img("cn"),
-    desktopImageEn: img("en"),
-    mobileImageCn: null,
-    mobileImageEn: null,
-    enabled: true,
-    ...overrides,
-  };
+  return { objectKey: `banner/route-${seq}.png`, checksum: "abc" };
 }
 
 test("banners: 错误 accessKey 一律 404", async () => {
   setEnv({ ADMIN_ENTRY_KEY: KEY });
   try {
     assert.equal(
-      (
-        await call(listGet, "/admin/wrong-key/api/banners", {
-          method: "GET",
-          accessKey: "wrong-key",
-        })
-      ).status,
+      (await call(listGet, "/admin/wrong-key/api/banners", { method: "GET", accessKey: "wrong-key" })).status,
       404,
     );
     assert.equal(
-      (
-        await call(createPost, "/admin/wrong-key/api/banners", {
-          body: bannerBody(),
-          accessKey: "wrong-key",
-        })
-      ).status,
+      (await call(createPost, "/admin/wrong-key/api/banners", { body: { purpose: "cn-desktop", objectKey: img().objectKey }, accessKey: "wrong-key" })).status,
       404,
     );
     assert.equal(
-      (
-        await call(updatePost, "/admin/wrong-key/api/banners/x", {
-          body: bannerBody(),
-          accessKey: "wrong-key",
-        })
-      ).status,
+      (await call(updatePost, "/admin/wrong-key/api/banners/x", { body: { objectKey: img().objectKey }, accessKey: "wrong-key" })).status,
       404,
     );
     assert.equal(
-      (await call(deletePost, "/admin/wrong-key/api/banners/x/delete", { accessKey: "wrong-key" }))
-        .status,
+      (await call(deletePost, "/admin/wrong-key/api/banners/x/delete", { accessKey: "wrong-key" })).status,
       404,
     );
     assert.equal(
-      (
-        await call(reorderPost, "/admin/wrong-key/api/banners/reorder", {
-          body: { ids: [] },
-          accessKey: "wrong-key",
-        })
-      ).status,
+      (await call(reorderPost, "/admin/wrong-key/api/banners/reorder", { body: { purpose: "cn-desktop", ids: [] }, accessKey: "wrong-key" })).status,
       404,
     );
   } finally {
@@ -119,17 +87,23 @@ test("banners: GET 列表 200", async () => {
   }
 });
 
-test("banners: 缺桌面图 400；OSS 环境缺失 500", async () => {
+test("banners: 缺用途/缺图 400；OSS 环境缺失 500", async () => {
   setEnv({ ADMIN_ENTRY_KEY: KEY });
   try {
-    const missing = await call(createPost, `/admin/${KEY}/api/banners`, {
-      body: bannerBody({ desktopImageCn: null }),
+    const noPurpose = await call(createPost, `/admin/${KEY}/api/banners`, {
+      body: { objectKey: img().objectKey },
     });
-    assert.equal(missing.status, 400);
-    assert.match((await missing.json()).error, /缺少中文桌面图/);
+    assert.equal(noPurpose.status, 400);
+    assert.match((await noPurpose.json()).error, /不支持的用途/);
+
+    const noImage = await call(createPost, `/admin/${KEY}/api/banners`, {
+      body: { purpose: "cn-desktop" },
+    });
+    assert.equal(noImage.status, 400);
+    assert.match((await noImage.json()).error, /缺少图片对象/);
 
     const envMissing = await call(createPost, `/admin/${KEY}/api/banners`, {
-      body: bannerBody(),
+      body: { purpose: "cn-desktop", objectKey: img().objectKey },
     });
     assert.equal(envMissing.status, 500);
   } finally {
@@ -137,15 +111,17 @@ test("banners: 缺桌面图 400；OSS 环境缺失 500", async () => {
   }
 });
 
-test("banners: 数量达上限时 POST 返回 400 + 上限文案", async () => {
+test("banners: 同一用途达上限时 POST 返回 400 + 上限文案", async () => {
   setEnv({ ADMIN_ENTRY_KEY: KEY });
   try {
     const current = (await (await call(listGet, `/admin/${KEY}/api/banners`, { method: "GET" })).json())
-      .items.length;
-    for (let i = current; i < MAX_BANNERS; i++) {
-      await createBanner(bannerBody(), { validateImage: VALIDATE_STUB });
+      .items.filter((item) => item.purpose === "en-desktop").length;
+    for (let i = current; i < MAX_BANNERS_PER_PURPOSE; i++) {
+      await createBannerImage({ purpose: "en-desktop", image: img() }, { validateImage: VALIDATE_STUB });
     }
-    const res = await call(createPost, `/admin/${KEY}/api/banners`, { body: bannerBody() });
+    const res = await call(createPost, `/admin/${KEY}/api/banners`, {
+      body: { purpose: "en-desktop", objectKey: img().objectKey },
+    });
     assert.equal(res.status, 400);
     assert.match((await res.json()).error, /已达上限/);
   } finally {
@@ -153,11 +129,11 @@ test("banners: 数量达上限时 POST 返回 400 + 上限文案", async () => {
   }
 });
 
-test("banners: 更新/删除不存在返回 404；reorder 非法 body 400", async () => {
+test("banners: 更新/删除不存在 404；reorder 非法参数 400", async () => {
   setEnv({ ADMIN_ENTRY_KEY: KEY });
   try {
     assert.equal(
-      (await call(updatePost, `/admin/${KEY}/api/banners/not-exist`, { body: bannerBody() })).status,
+      (await call(updatePost, `/admin/${KEY}/api/banners/not-exist`, { body: { objectKey: img().objectKey } })).status,
       404,
     );
     assert.equal((await call(deletePost, `/admin/${KEY}/api/banners/not-exist/delete`)).status, 404);
@@ -166,8 +142,7 @@ test("banners: 更新/删除不存在返回 404；reorder 非法 body 400", asyn
       400,
     );
     assert.equal(
-      (await call(reorderPost, `/admin/${KEY}/api/banners/reorder`, { body: { ids: ["not-exist"] } }))
-        .status,
+      (await call(reorderPost, `/admin/${KEY}/api/banners/reorder`, { body: { purpose: "cn-desktop", ids: ["not-exist"] } })).status,
       400,
     );
   } finally {

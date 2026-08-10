@@ -1,21 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import ImageUploadField from "@/app/components/image-upload-field";
+import BannerPurposeModule from "@/app/components/banner-purpose-module";
 
-function emptyBanner() {
-  return {
-    id: undefined,
-    desktopImageCn: null,
-    desktopImageEn: null,
-    mobileImageCn: null,
-    mobileImageEn: null,
-    enabled: false,
-  };
-}
+const PURPOSES = [
+  { id: "cn-desktop", label: "中文桌面图", hint: "必填 · 1.72:1（每 3 秒自动切换）", specId: "banner-desktop" },
+  { id: "en-desktop", label: "英文桌面图", hint: "必填 · 1.72:1（每 3 秒自动切换）", specId: "banner-desktop" },
+  { id: "cn-mobile", label: "中文移动图", hint: "可选 · 1.2:1（未上传时前台回退桌面图）", specId: "banner-mobile" },
+  { id: "en-mobile", label: "英文移动图", hint: "可选 · 1.2:1（未上传时前台回退桌面图）", specId: "banner-mobile" },
+];
 
 export default function BannerManager({ accessKey }) {
-  const [banners, setBanners] = useState([]);
+  const [groups, setGroups] = useState({});
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState(null);
@@ -30,7 +26,11 @@ export default function BannerManager({ accessKey }) {
       const res = await fetch(`/admin/${encodeURIComponent(accessKey)}/api/banners`);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "读取失败");
-      setBanners(data.items || []);
+      const next = { "cn-desktop": [], "en-desktop": [], "cn-mobile": [], "en-mobile": [] };
+      for (const item of data.items || []) {
+        if (next[item.purpose]) next[item.purpose].push(item);
+      }
+      setGroups(next);
     } catch (err) {
       showToast("error", err?.message || "读取 Banner 失败");
     } finally {
@@ -43,39 +43,11 @@ export default function BannerManager({ accessKey }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessKey]);
 
-  function patchBanner(index, patch) {
-    setBanners((prev) => prev.map((banner, i) => (i === index ? { ...banner, ...patch } : banner)));
-  }
-
-  function addBanner() {
-    if (banners.length >= 5) {
-      showToast("error", "Banner 数量已达上限（5 张），可先删除旧 Banner 后再新增");
-      return;
-    }
-    setBanners((prev) => [...prev, emptyBanner()]);
-  }
-
-  async function save(banner, index) {
+  async function run(action) {
     setBusy(true);
     try {
-      const url = banner.id
-        ? `/admin/${encodeURIComponent(accessKey)}/api/banners/${banner.id}`
-        : `/admin/${encodeURIComponent(accessKey)}/api/banners`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          desktopImageCn: banner.desktopImageCn,
-          desktopImageEn: banner.desktopImageEn,
-          mobileImageCn: banner.mobileImageCn,
-          mobileImageEn: banner.mobileImageEn,
-          enabled: banner.enabled,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || `保存失败（${res.status}）`);
-      patchBanner(index, data.banner);
-      showToast("ok", "Banner 已保存");
+      await action();
+      await load();
     } catch (err) {
       showToast("error", err?.message || "保存失败");
     } finally {
@@ -83,49 +55,41 @@ export default function BannerManager({ accessKey }) {
     }
   }
 
-  async function remove(banner, index) {
-    if (!banner.id) {
-      setBanners((prev) => prev.filter((_, i) => i !== index));
-      return;
-    }
-    if (!window.confirm("确认删除该 Banner？删除后不可恢复。")) return;
-    setBusy(true);
-    try {
-      const res = await fetch(
-        `/admin/${encodeURIComponent(accessKey)}/api/banners/${banner.id}/delete`,
-        { method: "POST" },
-      );
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || `删除失败（${res.status}）`);
-      setBanners((prev) => prev.filter((_, i) => i !== index));
-      showToast("ok", "Banner 已删除");
-    } catch (err) {
-      showToast("error", err?.message || "删除失败");
-    } finally {
-      setBusy(false);
-    }
+  async function post(path, body) {
+    const res = await fetch(`/admin/${encodeURIComponent(accessKey)}${path}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body || {}),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error || `请求失败（${res.status}）`);
+    return data;
   }
 
-  async function move(index, delta) {
-    const target = index + delta;
-    if (target < 0 || target >= banners.length) return;
-    const next = [...banners];
-    [next[index], next[target]] = [next[target], next[index]];
-    setBusy(true);
-    try {
-      const res = await fetch(`/admin/${encodeURIComponent(accessKey)}/api/banners/reorder`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ids: next.map((banner) => banner.id).filter(Boolean) }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || `排序失败（${res.status}）`);
-      setBanners(data.items || next);
-    } catch (err) {
-      showToast("error", err?.message || "排序失败");
-    } finally {
-      setBusy(false);
-    }
+  function addImage(purpose, meta) {
+    return run(() =>
+      post(`/api/banners`, { purpose, objectKey: meta.objectKey, checksum: meta.checksum }).then(() =>
+        showToast("ok", "Banner 图已添加"),
+      ),
+    );
+  }
+
+  function replaceImage(purpose, row, meta) {
+    return run(() =>
+      post(`/api/banners/${row.id}`, { objectKey: meta.objectKey, checksum: meta.checksum }).then(() =>
+        showToast("ok", "Banner 图已替换"),
+      ),
+    );
+  }
+
+  function deleteImage(purpose, row) {
+    return run(() =>
+      post(`/api/banners/${row.id}/delete`).then(() => showToast("ok", "Banner 图已删除")),
+    );
+  }
+
+  function reorderImages(purpose, ids) {
+    return run(() => post(`/api/banners/reorder`, { purpose, ids }).then(() => showToast("ok", "顺序已更新")));
   }
 
   if (!loaded) {
@@ -134,135 +98,23 @@ export default function BannerManager({ accessKey }) {
 
   return (
     <div className="admin-upload-area">
-      <div className="admin-form-actions" style={{ marginBottom: 18 }}>
-        <button type="button" className="admin-check-button" onClick={addBanner} disabled={busy}>
-          新增 Banner（整页）
-        </button>
-        <span className="admin-hint">{banners.length} / 5 张</span>
-      </div>
-
-      <div className="admin-banner-section">
-        <h2>
-          中文桌面图 <small>必填 · 1.72:1</small>
-        </h2>
-        <div className="admin-banner-slots">
-          {banners.map((banner, index) => (
-            <div className="admin-banner-slot" key={`cn-${banner.id || index}`}>
-              <ImageUploadField
-                accessKey={accessKey}
-                specId="banner-desktop"
-                label={`第 ${index + 1} 页`}
-                maxCount={1}
-                images={banner.desktopImageCn ? [banner.desktopImageCn] : []}
-                onChange={(arr) => patchBanner(index, { desktopImageCn: arr[0] ?? null })}
-                compact
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="admin-banner-section">
-        <h2>
-          英文桌面图 <small>必填 · 1.72:1</small>
-        </h2>
-        <div className="admin-banner-slots">
-          {banners.map((banner, index) => (
-            <div className="admin-banner-slot" key={`en-${banner.id || index}`}>
-              <ImageUploadField
-                accessKey={accessKey}
-                specId="banner-desktop"
-                label={`第 ${index + 1} 页`}
-                maxCount={1}
-                images={banner.desktopImageEn ? [banner.desktopImageEn] : []}
-                onChange={(arr) => patchBanner(index, { desktopImageEn: arr[0] ?? null })}
-                compact
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="admin-banner-section">
-        <h2>
-          中文移动图 <small>可选 · 1.2:1（未上传时前台回退桌面图）</small>
-        </h2>
-        <div className="admin-banner-slots">
-          {banners.map((banner, index) => (
-            <div className="admin-banner-slot" key={`mcn-${banner.id || index}`}>
-              <ImageUploadField
-                accessKey={accessKey}
-                specId="banner-mobile"
-                label={`第 ${index + 1} 页`}
-                maxCount={1}
-                images={banner.mobileImageCn ? [banner.mobileImageCn] : []}
-                onChange={(arr) => patchBanner(index, { mobileImageCn: arr[0] ?? null })}
-                compact
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="admin-banner-section">
-        <h2>
-          英文移动图 <small>可选 · 1.2:1（未上传时前台回退桌面图）</small>
-        </h2>
-        <div className="admin-banner-slots">
-          {banners.map((banner, index) => (
-            <div className="admin-banner-slot" key={`men-${banner.id || index}`}>
-              <ImageUploadField
-                accessKey={accessKey}
-                specId="banner-mobile"
-                label={`第 ${index + 1} 页`}
-                maxCount={1}
-                images={banner.mobileImageEn ? [banner.mobileImageEn] : []}
-                onChange={(arr) => patchBanner(index, { mobileImageEn: arr[0] ?? null })}
-                compact
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="admin-card admin-page-bar">
-        <h2 className="admin-card-title">页面设置（顺序 / 启用 / 保存 / 删除整页）</h2>
-        <div className="admin-page-chips">
-          {banners.map((banner, index) => (
-            <div className="admin-page-chip" key={`page-${banner.id || index}`}>
-              <strong>第 {index + 1} 页</strong>
-              <label className="admin-checkbox">
-                <input
-                  type="checkbox"
-                  checked={banner.enabled}
-                  onChange={(e) => patchBanner(index, { enabled: e.target.checked })}
-                />
-                启用
-              </label>
-              <div className="admin-sku-actions">
-                <button type="button" onClick={() => move(index, -1)} disabled={index === 0 || busy} aria-label="前移">
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  onClick={() => move(index, 1)}
-                  disabled={index === banners.length - 1 || busy}
-                  aria-label="后移"
-                >
-                  ↓
-                </button>
-                <button type="button" onClick={() => save(banner, index)} disabled={busy}>
-                  {busy ? "保存中…" : "保存"}
-                </button>
-                <button type="button" onClick={() => remove(banner, index)} disabled={busy} aria-label="删除整页">
-                  删除
-                </button>
-              </div>
-            </div>
-          ))}
-          {!banners.length && <p className="admin-hint">还没有 Banner，点击上方"新增 Banner（整页）"创建。</p>}
-        </div>
-      </div>
+      {PURPOSES.map((purpose) => (
+        <BannerPurposeModule
+          key={purpose.id}
+          accessKey={accessKey}
+          label={purpose.label}
+          hint={purpose.hint}
+          specId={purpose.specId}
+          images={groups[purpose.id] || []}
+          maxCount={5}
+          busy={busy}
+          onAdd={(meta) => addImage(purpose.id, meta)}
+          onDelete={(row) => deleteImage(purpose.id, row)}
+          onReorder={(ids) => reorderImages(purpose.id, ids)}
+          onReplace={(row, meta) => replaceImage(purpose.id, row, meta)}
+          onLimit={() => showToast("error", "该用途 Banner 数量已达上限（5 张），可先删除旧图后再添加")}
+        />
+      ))}
 
       {toast && (
         <div className={`admin-toast ${toast.kind === "ok" ? "is-ok" : "is-error"}`} role="status">

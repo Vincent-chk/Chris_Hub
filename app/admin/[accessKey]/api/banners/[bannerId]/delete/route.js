@@ -1,6 +1,6 @@
 // 中台 Banner 删除接口（阶段 C · C4）
 import { isValidAdminKey } from "../../../../../../../lib/admin/guard.js";
-import { deleteBanner } from "../../../../../../../lib/repositories/admin.js";
+import { deleteBannerImage } from "../../../../../../../lib/repositories/admin.js";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ export async function POST(request, { params }) {
     return json({ error: "Not Found" }, 404);
   }
   try {
-    const deleted = await deleteBanner(bannerId);
+    const deleted = await deleteBannerImage(bannerId);
     if (!deleted) {
       return json({ error: "Not Found" }, 404);
     }
