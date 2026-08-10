@@ -83,6 +83,7 @@ export default function UploadTestArea({ accessKey }) {
         sourceImg: sourceImgRef.current,
         croppedPixels,
         exportFormat: spec.exportFormat,
+        maxBytes: spec.maxBytes,
       });
       setResult(meta);
       setMessage({ kind: "ok", text: `上传并校验成功：${meta.objectKey}` });

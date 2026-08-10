@@ -100,6 +100,7 @@ export default function BannerPurposeModule({
         sourceImg: sourceImgRef.current,
         croppedPixels,
         exportFormat: spec.exportFormat,
+        maxBytes: spec.maxBytes,
       });
       if (mode?.kind === "replace") {
         await onReplace(mode.row, meta);
@@ -119,7 +120,7 @@ export default function BannerPurposeModule({
     if (target < 0 || target >= images.length) return;
     const next = [...images];
     [next[index], next[target]] = [next[target], next[index]];
-    onReorder(next.map((row) => row.id));
+    onReorder(next);
   }
 
   function remove(row) {
@@ -134,7 +135,7 @@ export default function BannerPurposeModule({
       </h2>
       <div className="admin-banner-slots">
         {images.map((row, index) => (
-          <div className="admin-thumb" key={row.id}>
+          <div className="admin-thumb" key={row.id || row.objectKey}>
             <img src={previewUrl(row.objectKey)} alt="" />
             <span className="admin-thumb-tools">
               <button

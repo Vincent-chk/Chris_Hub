@@ -86,6 +86,7 @@ export default function ImageUploadField({
         sourceImg: sourceImgRef.current,
         croppedPixels,
         exportFormat: spec.exportFormat,
+        maxBytes: spec.maxBytes,
       });
       if (maxCount === 1) {
         onChange([meta]);
