@@ -7,11 +7,13 @@
     "build": "next build",
     "start": "next start",
     "test": "node --test",
+    "smoke:oss": "node --env-file=.env.local scripts/oss-smoke.mjs",
     "db:generate": "drizzle-kit generate --config=drizzle.config.mjs",
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.mjs",
     "db:seed": "node lib/seed/seed.js"
   },
   "dependencies": {
+    "ali-oss": "^6.23.0",
     "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^0.468.0",
