@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Cropper from "react-easy-crop";
 import { IMAGE_SPECS, SPEC_TO_PURPOSE } from "@/lib/image-specs";
-import { MIME_TO_EXT, loadImage, uploadCroppedImage } from "@/lib/client-upload";
+import { MIME_TO_EXT, loadImage, previewUrl, uploadCroppedImage } from "@/lib/client-upload";
 
 export default function ImageUploadField({
   accessKey,
@@ -120,7 +120,7 @@ export default function ImageUploadField({
         <div className="admin-thumb-list">
           {images.map((image, index) => (
             <div className="admin-thumb" key={image.objectKey}>
-              <img src={`/oss/${image.objectKey}`} alt="" />
+              <img src={previewUrl(image.objectKey)} alt="" />
               <span className="admin-thumb-tools">
                 {maxCount !== 1 && (
                   <>
