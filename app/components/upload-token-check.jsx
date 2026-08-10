@@ -20,7 +20,7 @@ export default function UploadTokenCheck({ accessKey }) {
       }
       setState({
         status: "ok",
-        message: `凭证签发成功：${data.objectKey}（有效期至 ${data.expiresAt}）`,
+        message: `凭证与直传地址已生成：${data.objectKey}（有效期至 ${data.expiresAt}）`,
       });
     } catch (err) {
       setState({ status: "error", message: `请求异常：${err?.message || err}` });

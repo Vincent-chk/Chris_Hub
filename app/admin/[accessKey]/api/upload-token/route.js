@@ -1,6 +1,6 @@
 // 中台 OSS 上传凭证接口（阶段 C · C1）
 // 路径内携带 accessKey，服务端逐次校验；错误 Key 一律 404。
-import { createUploadCredentials } from "../../../../../lib/oss/sts.js";
+import { buildSignedPutUrl, createUploadCredentials } from "../../../../../lib/oss/sts.js";
 import { isValidAdminKey } from "../../../../../lib/admin/guard.js";
 
 export const dynamic = "force-dynamic";
@@ -22,12 +22,19 @@ export async function POST(request, { params }) {
     return json({ error: "请求体必须是 JSON" }, 400);
   }
 
-  const { purpose, extension, skuId } = body || {};
+  const { purpose, extension, skuId, contentType } = body || {};
   try {
     const result = await createUploadCredentials({ purpose, extension, skuId });
+    const uploadUrl = buildSignedPutUrl({
+      objectKey: result.objectKey,
+      region: result.region,
+      bucket: result.bucket,
+      credentials: result.credentials,
+      contentType: typeof contentType === "string" && contentType ? contentType : undefined,
+    });
     return json({
       objectKey: result.objectKey,
-      credentials: result.credentials,
+      uploadUrl,
       expiresAt: result.expiresAt,
       region: result.region,
       bucket: result.bucket,
