@@ -13,6 +13,8 @@
     "db:seed": "node lib/seed/seed.js"
   },
   "dependencies": {
+    "@alicloud/openapi-client": "^0.4.15",
+    "@alicloud/sts20150401": "^1.2.0",
     "ali-oss": "^6.23.0",
     "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.2",
