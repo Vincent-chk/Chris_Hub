@@ -4,6 +4,7 @@ import "./helpers.mjs";
 import { GET as listGet, POST as savePost } from "../app/admin/[accessKey]/api/products/route.js";
 import { GET as aggregateGet } from "../app/admin/[accessKey]/api/products/[productId]/route.js";
 import { GET as tagsGet, POST as tagsPost } from "../app/admin/[accessKey]/api/tags/route.js";
+import { POST as tagTogglePost } from "../app/admin/[accessKey]/api/tags/[tagId]/toggle/route.js";
 import { GET as ossGet } from "../app/oss/[...key]/route.js";
 import { GET as settingsGet, POST as settingsPost } from "../app/admin/[accessKey]/api/site-settings/route.js";
 
@@ -60,6 +61,23 @@ function createTag(accessKey, body) {
       body: JSON.stringify(body),
     }),
     { params: Promise.resolve({ accessKey }) },
+  );
+}
+
+function getTagsAll(accessKey) {
+  return tagsGet(new Request(`http://localhost/admin/${accessKey}/api/tags?all=1`), {
+    params: Promise.resolve({ accessKey }),
+  });
+}
+
+function toggleTag(accessKey, tagId, body) {
+  return tagTogglePost(
+    new Request(`http://localhost/admin/${accessKey}/api/tags/${tagId}/toggle`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+    { params: Promise.resolve({ accessKey, tagId }) },
   );
 }
 
@@ -205,6 +223,49 @@ test("tags: 错误 accessKey 404；列表 200；新建 200/400/重名 400", asyn
 
     const dup = await createTag(KEY, { nameCn: "路由标签" });
     assert.equal(dup.status, 400);
+  } finally {
+    restoreEnv();
+  }
+});
+
+test("tags: ?all=1 含停用与 enabled；POST 带 id 编辑；toggle 404/200/400；错误 Key 404", async () => {
+  setEnv({ ADMIN_ENTRY_KEY: KEY });
+  try {
+    assert.equal((await getTagsAll("wrong-key")).status, 404);
+    assert.equal((await toggleTag("wrong-key", "x", { enabled: true })).status, 404);
+
+    const created = await (await createTag(KEY, { nameCn: "路由标签2", nameEn: "Route2" })).json();
+    const id = created.tag.id;
+
+    // 带 id 编辑
+    const edited = await tagsPost(
+      new Request(`http://localhost/admin/${KEY}/api/tags`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id, nameCn: "路由标签2改", nameEn: "Route2b" }),
+      }),
+      { params: Promise.resolve({ accessKey: KEY }) },
+    );
+    assert.equal(edited.status, 200);
+    assert.equal((await edited.json()).tag.nameCn, "路由标签2改");
+
+    // 停用后：默认 GET 不含，?all=1 含且 enabled=false
+    assert.equal((await toggleTag(KEY, id, { enabled: false })).status, 200);
+    const defaultList = await (await getTags(KEY)).json();
+    assert.ok(!defaultList.items.some((item) => item.id === id));
+    const allList = await (await getTagsAll(KEY)).json();
+    const row = allList.items.find((item) => item.id === id);
+    assert.ok(row);
+    assert.equal(row.enabled, false);
+
+    // 重新启用
+    assert.equal((await toggleTag(KEY, id, { enabled: true })).status, 200);
+    const allList2 = await (await getTagsAll(KEY)).json();
+    assert.equal(allList2.items.find((item) => item.id === id).enabled, true);
+
+    // toggle 非法 body 400；不存在标签 404
+    assert.equal((await toggleTag(KEY, id, {})).status, 400);
+    assert.equal((await toggleTag(KEY, "tag-not-exist", { enabled: true })).status, 404);
   } finally {
     restoreEnv();
   }

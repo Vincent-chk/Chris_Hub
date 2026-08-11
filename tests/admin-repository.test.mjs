@@ -9,7 +9,9 @@ import {
   createOrUpdateTag,
   getProductAggregate,
   listAdminProducts,
+  listAdminTags,
   saveProductAggregate,
+  setTagEnabled,
 } from "../lib/repositories/admin.js";
 import { products, skuImages, skus, tags } from "../lib/schema/index.js";
 
@@ -231,6 +233,26 @@ test("createOrUpdateTag: 中文必填、重名拒绝、更新改名成功", () =
   const updated = createOrUpdateTag({ id: tag.id, nameCn: "限量" });
   assert.equal(updated.nameCn, "限量");
   assert.equal(db.select().from(tags).where(eq(tags.id, tag.id)).get().nameEn, "Promo");
+});
+
+test("listAdminTags: 返回全部标签（含停用）并带 enabled 字段", () => {
+  const tag = createOrUpdateTag({ nameCn: "停用测试", nameEn: "Disabled" });
+  setTagEnabled(tag.id, false);
+  const list = listAdminTags();
+  const row = list.find((item) => item.id === tag.id);
+  assert.ok(row);
+  assert.equal(row.nameCn, "停用测试");
+  assert.equal(row.nameEn, "Disabled");
+  assert.equal(row.enabled, false);
+});
+
+test("setTagEnabled: 切换启用/停用；不存在返回 null", () => {
+  const tag = createOrUpdateTag({ nameCn: "切换测试" });
+  const disabled = setTagEnabled(tag.id, false);
+  assert.equal(disabled.enabled, false);
+  const enabled = setTagEnabled(tag.id, true);
+  assert.equal(enabled.enabled, true);
+  assert.equal(setTagEnabled("tag-not-exist", false), null);
 });
 
 test("listAdminProducts: 搜索/筛选/分页", async () => {

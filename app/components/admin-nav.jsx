@@ -15,7 +15,12 @@ export default function AdminNav({ accessKey }) {
       >
         商品管理
       </Link>
-      <span className="admin-nav-item">标签管理</span>
+      <Link
+        className={`admin-nav-item ${isActive(`/admin/${accessKey}/tags`) ? "is-active" : ""}`}
+        href={`/admin/${accessKey}/tags`}
+      >
+        标签管理
+      </Link>
       <Link
         className={`admin-nav-item ${isActive(`/admin/${accessKey}/banners`) ? "is-active" : ""}`}
         href={`/admin/${accessKey}/banners`}
@@ -34,7 +39,6 @@ export default function AdminNav({ accessKey }) {
       >
         上传测试
       </Link>
-      <small className="admin-nav-note">标签管理即将开放</small>
     </nav>
   );
 }
