@@ -5,6 +5,7 @@ import { GET as listGet, POST as savePost } from "../app/admin/[accessKey]/api/p
 import { GET as aggregateGet } from "../app/admin/[accessKey]/api/products/[productId]/route.js";
 import { GET as tagsGet, POST as tagsPost } from "../app/admin/[accessKey]/api/tags/route.js";
 import { POST as tagTogglePost } from "../app/admin/[accessKey]/api/tags/[tagId]/toggle/route.js";
+import { GET as tagProductsGet } from "../app/admin/[accessKey]/api/tags/[tagId]/products/route.js";
 import { GET as ossGet } from "../app/oss/[...key]/route.js";
 import { GET as settingsGet, POST as settingsPost } from "../app/admin/[accessKey]/api/site-settings/route.js";
 
@@ -77,6 +78,13 @@ function toggleTag(accessKey, tagId, body) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     }),
+    { params: Promise.resolve({ accessKey, tagId }) },
+  );
+}
+
+function getTagProducts(accessKey, tagId) {
+  return tagProductsGet(
+    new Request(`http://localhost/admin/${accessKey}/api/tags/${tagId}/products`),
     { params: Promise.resolve({ accessKey, tagId }) },
   );
 }
@@ -266,6 +274,36 @@ test("tags: ?all=1 含停用与 enabled；POST 带 id 编辑；toggle 404/200/40
     // toggle 非法 body 400；不存在标签 404
     assert.equal((await toggleTag(KEY, id, {})).status, 400);
     assert.equal((await toggleTag(KEY, "tag-not-exist", { enabled: true })).status, 404);
+  } finally {
+    restoreEnv();
+  }
+});
+
+test("tags: ?all=1 含 productCount；绑定商品接口 404/200 且计数随绑定变化", async () => {
+  setEnv({ ADMIN_ENTRY_KEY: KEY });
+  try {
+    assert.equal((await getTagProducts("wrong-key", "x")).status, 404);
+    assert.equal((await getTagProducts(KEY, "tag-not-exist")).status, 404);
+
+    const created = await (await createTag(KEY, { nameCn: "路由绑定标签", nameEn: "RouteBind" })).json();
+    const id = created.tag.id;
+    const allList = await (await getTagsAll(KEY)).json();
+    assert.equal(typeof allList.items.find((item) => item.id === id).productCount, "number");
+
+    const empty = await getTagProducts(KEY, id);
+    assert.equal(empty.status, 200);
+    assert.deepEqual((await empty.json()).items, []);
+
+    // 草稿保存（无图，不需要 OSS）即可绑定标签
+    const saved = await saveProduct(KEY, { ...DRAFT, tagIds: [id] });
+    assert.equal(saved.status, 200);
+
+    const after = await (await getTagsAll(KEY)).json();
+    assert.equal(after.items.find((item) => item.id === id).productCount, 1);
+
+    const productsRes = await (await getTagProducts(KEY, id)).json();
+    assert.equal(productsRes.items.length, 1);
+    assert.equal(productsRes.items[0].nameCn, "路由测试商品");
   } finally {
     restoreEnv();
   }

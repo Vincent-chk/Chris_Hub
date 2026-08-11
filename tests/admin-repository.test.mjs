@@ -10,6 +10,7 @@ import {
   getProductAggregate,
   listAdminProducts,
   listAdminTags,
+  listTagProducts,
   saveProductAggregate,
   setTagEnabled,
 } from "../lib/repositories/admin.js";
@@ -253,6 +254,39 @@ test("setTagEnabled: 切换启用/停用；不存在返回 null", () => {
   const enabled = setTagEnabled(tag.id, true);
   assert.equal(enabled.enabled, true);
   assert.equal(setTagEnabled("tag-not-exist", false), null);
+});
+
+test("listAdminTags: productCount 反映绑定商品数", async () => {
+  const tag = createOrUpdateTag({ nameCn: "计数测试" });
+  await saveProductAggregate(
+    draftProduct({ tagIds: [tag.id], status: "published", skus: [publishableSku(1)] }),
+    { validateImage: VALIDATE_STUB },
+  );
+  const list = listAdminTags();
+  const row = list.find((item) => item.id === tag.id);
+  assert.equal(row.productCount, 1);
+});
+
+test("listTagProducts: 返回绑定商品基本信息；空数组；标签不存在返回 null", async () => {
+  const tag = createOrUpdateTag({ nameCn: "绑定列表测试" });
+  assert.deepEqual(listTagProducts(tag.id), []);
+
+  await saveProductAggregate(
+    draftProduct({
+      tagIds: [tag.id],
+      name: { cn: "绑定商品A", en: "Bound A" },
+      status: "published",
+      skus: [publishableSku(1)],
+    }),
+    { validateImage: VALIDATE_STUB },
+  );
+  const items = listTagProducts(tag.id);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].nameCn, "绑定商品A");
+  assert.equal(items[0].status, "published");
+  assert.ok(items[0].id && items[0].updatedAt);
+
+  assert.equal(listTagProducts("tag-not-exist"), null);
 });
 
 test("listAdminProducts: 搜索/筛选/分页", async () => {

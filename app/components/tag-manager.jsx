@@ -1,5 +1,6 @@
 "use client";
 
+import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function TagManager({ accessKey }) {
@@ -8,6 +9,9 @@ export default function TagManager({ accessKey }) {
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState(null);
   const [editor, setEditor] = useState(null); // null | { id?, nameCn, nameEn }
+  const [drawer, setDrawer] = useState(null); // null | { tagId, nameCn, productCount }
+  const [drawerItems, setDrawerItems] = useState(null);
+  const [drawerLoading, setDrawerLoading] = useState(false);
 
   function showToast(kind, text) {
     setToast({ kind, text });
@@ -92,6 +96,30 @@ export default function TagManager({ accessKey }) {
     }
   }
 
+  async function openDrawer(tag) {
+    setDrawer({ tagId: tag.id, nameCn: tag.nameCn, productCount: tag.productCount });
+    setDrawerItems(null);
+    setDrawerLoading(true);
+    try {
+      const res = await fetch(
+        `/admin/${encodeURIComponent(accessKey)}/api/tags/${encodeURIComponent(tag.id)}/products`,
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `读取失败（${res.status}）`);
+      setDrawerItems(data.items || []);
+    } catch (err) {
+      setDrawer(null);
+      showToast("error", err?.message || "读取绑定商品失败");
+    } finally {
+      setDrawerLoading(false);
+    }
+  }
+
+  function closeDrawer() {
+    setDrawer(null);
+    setDrawerItems(null);
+  }
+
   if (!loaded) {
     return <p className="admin-lead">加载中…</p>;
   }
@@ -165,6 +193,7 @@ export default function TagManager({ accessKey }) {
               <th>英文名称</th>
               <th>状态</th>
               <th>更新时间</th>
+              <th>绑定商品数</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -182,12 +211,23 @@ export default function TagManager({ accessKey }) {
                 </td>
                 <td>{tag.updatedAt?.slice(0, 19).replace("T", " ")}</td>
                 <td>
+                  <strong>{tag.productCount}</strong>
+                </td>
+                <td>
                   <div className="admin-sku-actions">
                     <button type="button" onClick={() => openEdit(tag)} disabled={busy}>
                       编辑
                     </button>
                     <button type="button" onClick={() => toggle(tag)} disabled={busy}>
                       {tag.enabled ? "停用" : "启用"}
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-blue-button"
+                      onClick={() => openDrawer(tag)}
+                      disabled={busy}
+                    >
+                      查看绑定商品
                     </button>
                   </div>
                 </td>
@@ -211,6 +251,52 @@ export default function TagManager({ accessKey }) {
         <div className={`admin-toast ${toast.kind === "ok" ? "is-ok" : "is-error"}`} role="status">
           {toast.text}
         </div>
+      )}
+
+      {drawer && (
+        <>
+          <div className="admin-drawer-backdrop" onClick={closeDrawer} />
+          <aside className="admin-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+            <div className="admin-drawer-head">
+              <h2 id="drawer-title">
+                {drawer.nameCn} · 绑定商品（{drawer.productCount}）
+              </h2>
+              <button
+                type="button"
+                className="icon-button modal-close"
+                aria-label="关闭"
+                title="关闭"
+                onClick={closeDrawer}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="admin-hint">商品基本信息（暂不跳转详情）</p>
+            {drawerLoading ? (
+              <p className="admin-lead">加载中…</p>
+            ) : drawerItems?.length ? (
+              <ul className="admin-drawer-list">
+                {drawerItems.map((product) => (
+                  <li key={product.id}>
+                    <strong>{product.nameCn}</strong>
+                    {product.nameEn && <span className="admin-hint">{product.nameEn}</span>}
+                    <span>
+                      <span className={`admin-badge ${product.status === "published" ? "is-published" : ""}`}>
+                        {product.status === "published" ? "已发布" : "草稿"}
+                      </span>
+                      <span className="admin-hint">
+                        {" "}
+                        {product.updatedAt?.slice(0, 19).replace("T", " ")}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="admin-lead">该标签暂无绑定商品</p>
+            )}
+          </aside>
+        </>
       )}
     </div>
   );
