@@ -48,7 +48,7 @@ export default function BannerCarousel({ banners }) {
       <div className="banner-controls">
         <button className="icon-button banner-arrow" type="button" aria-label="Previous banner" title="Previous banner" onClick={() => setActive((active - 1 + count) % count)}><ChevronLeft size={18} /></button>
         <div className="banner-dots" role="tablist" aria-label="Banner selection">
-          {list.map((url, index) => <button key={url} type="button" className={`banner-dot ${index === active ? "is-active" : ""}`} role="tab" aria-selected={index === active} aria-label={`Banner ${index + 1}`} onClick={() => setActive(index)} />)}
+          {list.map((url, index) => <button key={`${url}-${index}`} type="button" className={`banner-dot ${index === active ? "is-active" : ""}`} role="tab" aria-selected={index === active} aria-label={`Banner ${index + 1}`} onClick={() => setActive(index)} />)}
         </div>
         <button className="icon-button banner-arrow" type="button" aria-label="Next banner" title="Next banner" onClick={() => setActive((active + 1) % count)}><ChevronRight size={18} /></button>
       </div>
