@@ -125,7 +125,7 @@ export default function TagManager({ accessKey }) {
   }
 
   return (
-    <div className="admin-upload-area">
+    <div className="admin-wide">
       <div className="admin-page-head">
         <h1 className="admin-title">标签管理</h1>
         <button type="button" className="admin-check-button" onClick={openCreate} disabled={busy}>
