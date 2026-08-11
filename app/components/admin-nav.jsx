@@ -39,6 +39,12 @@ export default function AdminNav({ accessKey }) {
       >
         上传测试
       </Link>
+      <Link
+        className={`admin-nav-item ${isActive(`/admin/${accessKey}/devops`) ? "is-active" : ""}`}
+        href={`/admin/${accessKey}/devops`}
+      >
+        开发者运维
+      </Link>
     </nav>
   );
 }

@@ -8,6 +8,8 @@ import { POST as tagTogglePost } from "../app/admin/[accessKey]/api/tags/[tagId]
 import { GET as tagProductsGet } from "../app/admin/[accessKey]/api/tags/[tagId]/products/route.js";
 import { GET as ossGet } from "../app/oss/[...key]/route.js";
 import { GET as settingsGet, POST as settingsPost } from "../app/admin/[accessKey]/api/site-settings/route.js";
+import { POST as devopsDetectPost } from "../app/admin/[accessKey]/api/devops/orphans/detect/route.js";
+import { POST as devopsCleanupPost } from "../app/admin/[accessKey]/api/devops/orphans/cleanup/route.js";
 
 const KEY = "c1-test-entry-key-0123456789";
 const ENV_KEYS = ["ADMIN_ENTRY_KEY", "OSS_BUCKET", "OSS_REGION", "OSS_ACCESS_KEY_ID", "OSS_ACCESS_KEY_SECRET"];
@@ -87,6 +89,18 @@ function getTagProducts(accessKey, tagId) {
     new Request(`http://localhost/admin/${accessKey}/api/tags/${tagId}/products`),
     { params: Promise.resolve({ accessKey, tagId }) },
   );
+}
+
+function devopsDetect(accessKey) {
+  return devopsDetectPost(new Request(`http://localhost/admin/${accessKey}/api/devops/orphans/detect`, {
+    method: "POST",
+  }), { params: Promise.resolve({ accessKey }) });
+}
+
+function devopsCleanup(accessKey) {
+  return devopsCleanupPost(new Request(`http://localhost/admin/${accessKey}/api/devops/orphans/cleanup`, {
+    method: "POST",
+  }), { params: Promise.resolve({ accessKey }) });
 }
 
 function getSettings(accessKey) {
@@ -357,6 +371,18 @@ test("site-settings: 带图保存且 OSS 环境缺失返回 500（不触发网�
       qr: null,
     });
     assert.equal(res.status, 500);
+  } finally {
+    restoreEnv();
+  }
+});
+
+test("devops: 错误 Key 404；OSS 环境缺失 500（不触发网络）", async () => {
+  setEnv({ ADMIN_ENTRY_KEY: KEY });
+  try {
+    assert.equal((await devopsDetect("wrong-key")).status, 404);
+    assert.equal((await devopsCleanup("wrong-key")).status, 404);
+    assert.equal((await devopsDetect(KEY)).status, 500);
+    assert.equal((await devopsCleanup(KEY)).status, 500);
   } finally {
     restoreEnv();
   }

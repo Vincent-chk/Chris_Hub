@@ -8,6 +8,7 @@
     "start": "next start",
     "test": "node --test",
     "smoke:oss": "node --env-file=.env.local scripts/oss-smoke.mjs",
+    "cleanup:orphans": "node --env-file=.env.local scripts/cleanup-orphans.mjs",
     "db:generate": "drizzle-kit generate --config=drizzle.config.mjs",
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.mjs",
     "db:seed": "node lib/seed/seed.js"
