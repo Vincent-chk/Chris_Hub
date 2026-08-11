@@ -278,15 +278,22 @@ export default function TagManager({ accessKey }) {
               <ul className="admin-drawer-list">
                 {drawerItems.map((product) => (
                   <li key={product.id}>
-                    <strong>{product.nameCn}</strong>
-                    {product.nameEn && <span className="admin-hint">{product.nameEn}</span>}
-                    <span>
-                      <span className={`admin-badge ${product.status === "published" ? "is-published" : ""}`}>
-                        {product.status === "published" ? "已发布" : "草稿"}
-                      </span>
-                      <span className="admin-hint">
-                        {" "}
-                        {product.updatedAt?.slice(0, 19).replace("T", " ")}
+                    {product.thumbnailUrl ? (
+                      <img className="admin-drawer-thumb" src={product.thumbnailUrl} alt="" />
+                    ) : (
+                      <span className="admin-drawer-thumb admin-drawer-thumb-empty" aria-hidden="true" />
+                    )}
+                    <span className="admin-drawer-info">
+                      <strong>{product.nameCn}</strong>
+                      {product.nameEn && <span className="admin-hint">{product.nameEn}</span>}
+                      <span>
+                        <span className={`admin-badge ${product.status === "published" ? "is-published" : ""}`}>
+                          {product.status === "published" ? "已发布" : "草稿"}
+                        </span>
+                        <span className="admin-hint">
+                          {" "}
+                          {product.updatedAt?.slice(0, 19).replace("T", " ")}
+                        </span>
                       </span>
                     </span>
                   </li>

@@ -290,7 +290,10 @@ h2 { font-size: clamp(31px, 4vw, 52px); font-weight: 500; letter-spacing: -0.02e
 .admin-drawer-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .admin-drawer-head h2 { margin: 0; font-size: 17px; }
 .admin-drawer-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.admin-drawer-list li { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 12px 14px; display: grid; gap: 4px; }
+.admin-drawer-list li { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+.admin-drawer-thumb { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; flex: none; background: #e3e5dc; }
+.admin-drawer-thumb-empty { display: inline-block; }
+.admin-drawer-info { min-width: 0; display: grid; gap: 3px; }
 .admin-thumb-list { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
 .admin-thumb { position: relative; width: 86px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #e3e5dc; }
 .admin-thumb img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }

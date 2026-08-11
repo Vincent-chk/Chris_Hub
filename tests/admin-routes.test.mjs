@@ -304,6 +304,7 @@ test("tags: ?all=1 含 productCount；绑定商品接口 404/200 且计数随绑
     const productsRes = await (await getTagProducts(KEY, id)).json();
     assert.equal(productsRes.items.length, 1);
     assert.equal(productsRes.items[0].nameCn, "路由测试商品");
+    assert.equal(productsRes.items[0].thumbnailUrl, null); // 草稿无 SKU，无缩略图
   } finally {
     restoreEnv();
   }

@@ -267,7 +267,7 @@ test("listAdminTags: productCount 反映绑定商品数", async () => {
   assert.equal(row.productCount, 1);
 });
 
-test("listTagProducts: 返回绑定商品基本信息；空数组；标签不存在返回 null", async () => {
+test("listTagProducts: 返回绑定商品基本信息与缩略图；空数组；标签不存在返回 null", async () => {
   const tag = createOrUpdateTag({ nameCn: "绑定列表测试" });
   assert.deepEqual(listTagProducts(tag.id), []);
 
@@ -280,11 +280,19 @@ test("listTagProducts: 返回绑定商品基本信息；空数组；标签不存
     }),
     { validateImage: VALIDATE_STUB },
   );
+  // 无 SKU 的草稿：缩略图为 null
+  await saveProductAggregate(
+    draftProduct({ tagIds: [tag.id], name: { cn: "绑定商品B", en: "Bound B" } }),
+    { validateImage: VALIDATE_STUB },
+  );
   const items = listTagProducts(tag.id);
-  assert.equal(items.length, 1);
-  assert.equal(items[0].nameCn, "绑定商品A");
-  assert.equal(items[0].status, "published");
-  assert.ok(items[0].id && items[0].updatedAt);
+  const a = items.find((item) => item.nameCn === "绑定商品A");
+  const b = items.find((item) => item.nameCn === "绑定商品B");
+  assert.ok(a && b);
+  assert.equal(a.status, "published");
+  assert.ok(a.id && a.updatedAt);
+  assert.ok(a.thumbnailUrl && a.thumbnailUrl.startsWith("/oss/sku/test/card-"));
+  assert.equal(b.thumbnailUrl, null);
 
   assert.equal(listTagProducts("tag-not-exist"), null);
 });
