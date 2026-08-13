@@ -4,6 +4,8 @@
 > 全程假设你使用**阿里云中国站（aliyun.com）**、一台**海外地域 ECS**、域名用阿里云云解析。
 > 控制台的菜单名称可能随版本微调，以你屏幕上实际看到的为准。
 
+如果你登录的是**阿里云国际站（alibabacloud.com）**也没关系：下面每一步的产品和菜单名称完全一样，只是界面语言和支付币种不同，照做即可。
+
 ## 0. 先理解要买什么、为什么
 
 你的项目是 Chris Hub：一个 Next.js 网站 + SQLite 数据库。上线后需要四样东西：
@@ -39,9 +41,39 @@
 - 一台电脑（本手册的 SSH 命令在 Mac 的“终端”App 里敲）。
 - 预算：起步阶段每月大概几十到两三百元（ECS 是大头），以购买页实时价格为准。
 
+### 0.2 官方文档速查表
+
+下面的链接全部是阿里云官方文档，操作到哪一步就点开哪一行对照着看：
+
+| 你要做什么 | 官方文档 |
+| --- | --- |
+| 买服务器（ECS） | [自定义购买实例](https://help.aliyun.com/zh/ecs/user-guide/create-an-instance-by-using-the-wizard) |
+| 防火墙（安全组） | [使用安全组](https://help.aliyun.com/zh/ecs/user-guide/add-a-security-group-rule) |
+| 服务器登录凭证（密码/密钥对） | [实例登录凭证管理](https://help.aliyun.com/zh/ecs/user-guide/create-an-ssh-key-pair) |
+| 挂载数据盘 | [创建并使用数据盘指引](https://help.aliyun.com/zh/ecs/user-guide/create-and-use-a-data-disk) |
+| 数据盘初始化命令 | [初始化 ≤2 TiB 数据盘（Linux）](https://help.aliyun.com/zh/ecs/user-guide/initialize-a-data-disk-whose-size-does-not-exceed-2-tib-on-a-linux-instance) |
+| 买域名 | [域名注册快速入门](https://help.aliyun.com/zh/dws/getting-started/quickly-register-a-new-domain-name) |
+| 域名指向服务器 | [云解析 DNS 新手指导](https://help.aliyun.com/zh/dns/beginner-s-guide) |
+| 建 OSS 图片仓库 | [创建存储空间（Bucket）](https://help.aliyun.com/zh/oss/user-guide/create-a-bucket-4) |
+| OSS 防误删 | [开启版本控制](https://help.aliyun.com/zh/oss/user-guide/overview-78) |
+| 建程序账号 | [创建 RAM 用户](https://help.aliyun.com/zh/ram/user-guide/create-a-ram-user) |
+| 给程序账号最小权限 | [管理 RAM 用户的权限](https://help.aliyun.com/zh/ram/user-guide/grant-permissions-to-the-ram-user) |
+| 建上传角色 | [创建可信实体为阿里云账号的 RAM 角色](https://help.aliyun.com/zh/ram/user-guide/create-a-ram-role-for-a-trusted-alibaba-cloud-account) |
+| 临时上传凭证原理 | [AssumeRole 获取临时身份凭证](https://help.aliyun.com/zh/ram/developer-reference/api-sts-2015-04-01-assumerole) |
+| 配 CDN | [快速接入阿里云 CDN](https://help.aliyun.com/zh/cdn/getting-started/quick-access-to-alibaba-cloud-cdn) |
+| CDN 连 OSS | [通过 CDN 加速访问 OSS](https://help.aliyun.com/zh/oss/user-guide/cdn-acceleration) |
+| 私有桶授权给 CDN | [OSS 私有 Bucket 回源](https://help.aliyun.com/zh/cdn/user-guide/grant-alibaba-cloud-cdn-access-permissions-on-private-oss-buckets) |
+| 网站 HTTPS 证书 | [开启网站 HTTPS 访问](https://help.aliyun.com/zh/document_detail/3043306.html) |
+| 免费证书（90 天） | [购买个人测试证书](https://help.aliyun.com/zh/ssl-certificate/purchase-an-individual-test-certificate) |
+| 磁盘 70% 告警 | [设置 ECS 实例报警规则](https://help.aliyun.com/zh/ecs/user-guide/configure-alerts-for-an-ecs-instance) |
+| 备份上传工具 | [安装 ossutil](https://help.aliyun.com/zh/oss/developer-reference/install-ossutil) |
+| 全程总览 | [网站搭建全流程指引](https://help.aliyun.com/zh/dws/getting-started/the-whole-process-of-website-building/) |
+
 ---
 
 ## 1. 购买海外 ECS
+
+> 官方文档对照：[自定义购买实例](https://help.aliyun.com/zh/ecs/user-guide/create-an-instance-by-using-the-wizard)。下面的小节和文档里的购买页选项一一对应。
 
 ### 1.1 打开购买页
 
@@ -90,6 +122,8 @@
 
 其他端口全部不放行。
 
+> 官方文档对照：[使用安全组](https://help.aliyun.com/zh/ecs/user-guide/add-a-security-group-rule)。阿里云官方建议 SSH（22）只对自己的固定 IP 开放；如果你没有固定 IP，先保持 `0.0.0.0/0` 能连上，熟悉后可以再把 22 的“授权对象”改成你常用的网络地址，能进一步防盗号。
+
 ### 1.8 登录凭证
 
 建议选**密钥对**：登录时不需要输密码，更安全。
@@ -110,6 +144,8 @@
 ---
 
 ## 2. 域名与 DNS
+
+> 官方文档对照：[域名注册快速入门](https://help.aliyun.com/zh/dws/getting-started/quickly-register-a-new-domain-name)、[云解析 DNS 新手指导](https://help.aliyun.com/zh/dns/beginner-s-guide)。
 
 ### 2.1 买域名
 
@@ -142,6 +178,8 @@ TTL 默认即可。解析生效通常几分钟。
 - 读写权限：**私有**（Private，关键！）。
 - 版本控制：建议开启（防止误删图片后无法找回）。
 
+> 官方文档对照：[创建存储空间（Bucket）](https://help.aliyun.com/zh/oss/user-guide/create-a-bucket-4)、[开启版本控制](https://help.aliyun.com/zh/oss/user-guide/overview-78)。
+
 ### 3.2 建目录前缀
 
 创建完成后进入 Bucket，建三个“目录”（OSS 里叫前缀）：
@@ -159,6 +197,8 @@ TTL 默认即可。解析生效通常几分钟。
 - **RAM 角色 `chris-hub-oss-uploader`**：上传能力的中转站。服务器用 RAM 用户调用 AssumeRole 拿到临时凭证，再交给浏览器直传；临时凭证 15 分钟过期，而且被进一步限制为“只能上传一个指定文件”。
 
 AccessKey 是程序访问阿里云的“账号密码”，**只给服务器用，绝不放进代码仓库或网页**。
+
+> 官方文档对照：[创建 RAM 用户](https://help.aliyun.com/zh/ram/user-guide/create-a-ram-user)、[管理 RAM 用户的权限](https://help.aliyun.com/zh/ram/user-guide/grant-permissions-to-the-ram-user)、[创建可信实体为阿里云账号的 RAM 角色](https://help.aliyun.com/zh/ram/user-guide/create-a-ram-role-for-a-trusted-alibaba-cloud-account)、[AssumeRole 获取临时身份凭证](https://help.aliyun.com/zh/ram/developer-reference/api-sts-2015-04-01-assumerole)。
 
 #### 3.3.1 创建 RAM 用户
 
@@ -257,6 +297,8 @@ ossutil ls oss://chris-hub-assets/sku/
 
 ### 4.1 添加加速域名
 
+> 官方文档对照：[快速接入阿里云 CDN](https://help.aliyun.com/zh/cdn/getting-started/quick-access-to-alibaba-cloud-cdn)、[通过 CDN 加速访问 OSS](https://help.aliyun.com/zh/oss/user-guide/cdn-acceleration)。注意“服务区域”选**全球（不含中国大陆）**：大陆访客仍能访问（走海外节点，速度略慢），好处是不用 ICP 备案；选“中国大陆”就必须先备案，一期不要选。
+
 阿里云控制台搜索“CDN”，进入“域名管理”，点**添加域名**：
 
 - 加速域名：`assets.example.com`
@@ -270,6 +312,8 @@ ossutil ls oss://chris-hub-assets/sku/
 
 这一步让 CDN 可以用阿里云内部角色从你的私有桶取图，而用户依然只能通过 CDN 域名访问。
 
+> 官方文档对照：[OSS 私有 Bucket 回源](https://help.aliyun.com/zh/cdn/user-guide/grant-alibaba-cloud-cdn-access-permissions-on-private-oss-buckets)。这一步是图片能显示的关键，漏掉会返回 403。
+
 ### 4.3 回填 CNAME
 
 CDN 控制台会给你一个 CNAME 地址（形如 `assets.example.com.w.cdngslb.com`）。回到云解析 DNS，添加：
@@ -279,6 +323,8 @@ CDN 控制台会给你一个 CNAME 地址（形如 `assets.example.com.w.cdngslb
 | CNAME | `assets` | CDN 给的 CNAME 地址 |
 
 ### 4.4 HTTPS 证书
+
+> 官方文档对照：[开启网站 HTTPS 访问](https://help.aliyun.com/zh/document_detail/3043306.html)、[购买个人测试证书](https://help.aliyun.com/zh/ssl-certificate/purchase-an-individual-test-certificate)。
 
 在 CDN 域名管理的“HTTPS 配置”里：
 
@@ -309,13 +355,24 @@ https://assets.example.com/sku/card-01.svg
 
 ### 5.1 SSH 登录
 
+如果你在买服务器时选了**密钥对**，先在 Mac 终端给私钥文件收紧权限（只做一次），再用 `-i` 指定私钥登录：
+
+```bash
+chmod 400 ~/Downloads/你的密钥文件名.pem
+ssh -i ~/Downloads/你的密钥文件名.pem root@你的ECS公网IP
+```
+
+如果你选的是**密码**方式，直接：
+
 ```bash
 ssh root@你的ECS公网IP
 ```
 
-第一次登录会提示确认主机指纹，输入 `yes`。密钥对方式登录不需要密码；密码方式会提示输入。
+第一次登录会提示确认主机指纹，输入 `yes`。密钥对方式不需要密码；密码方式会提示输入你在控制台设置的密码（输入时屏幕不显示任何字符，属正常现象）。
 
 ### 5.2 挂载数据盘（重要！）
+
+> 官方文档对照：[创建并使用数据盘指引](https://help.aliyun.com/zh/ecs/user-guide/create-and-use-a-data-disk)、[初始化 ≤2 TiB 数据盘（Linux）](https://help.aliyun.com/zh/ecs/user-guide/initialize-a-data-disk-whose-size-does-not-exceed-2-tib-on-a-linux-instance)。
 
 先看磁盘：
 
@@ -532,6 +589,8 @@ sudo systemctl reload nginx
 
 ### 5.11 HTTPS（Let's Encrypt，自动续期）
 
+> 官方文档对照（可选方案）：[开启网站 HTTPS 访问](https://help.aliyun.com/zh/document_detail/3043306.html)。本手册主推 Let's Encrypt 自动续期，省去每 90 天手动换证。
+
 ```bash
 sudo apt-get install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d example.com -d www.example.com
@@ -646,6 +705,8 @@ sudo tail -f /var/log/nginx/error.log
 ```
 
 ### 6.4 磁盘告警
+
+> 官方文档对照：[设置 ECS 实例报警规则](https://help.aliyun.com/zh/ecs/user-guide/configure-alerts-for-an-ecs-instance)。
 
 阿里云控制台搜索“云监控”，进入“报警规则”：
 

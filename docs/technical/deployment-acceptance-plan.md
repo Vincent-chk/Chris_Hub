@@ -10,6 +10,8 @@
 - 阶段 C（中台 + OSS 直传）已在 `codex/oss-test` 分支完成，包含 CI 测试与构建；OSS 链路已在你的阿里云账号用新加坡桶实测 7/7 通过。
 - 阶段 D（部署运维）和阶段 E（上线验收）尚未开始，即本文范围。
 - 发现并已修正两处文档与代码不一致：生产环境变量缺少 `OSS_ROLE_ARN`；OSS 前缀文档写 `products/`、`banners/`，代码实际为 `sku/`、`banner/`、`site/`。部署必须按修正后的文档执行。
+- 本次复核（2026-08-13）在 `codex/oss-test` 上完整执行：`node --test` 137/137 通过，`next build` 成功（中台页面与 API 全部正常产出）；代码用到的环境变量名单与 [deployment-operations-guide.md](./deployment-operations-guide.md) 的 `app.env` 示例一致（含 `OSS_ROLE_ARN`）。
+- 复核时 `main` 尚未包含阶段 C 代码与部署文档，两个分支均未合并，`v1.0.0` tag 未打——这正是下面 2.1 的三件事，也说明“本地开发完成 ≠ 可以开部署”，必须先把阶段 0 走完。
 
 部署前必须完成的两件事：
 
@@ -33,6 +35,7 @@
 1. 合并代码（两条 PR，顺序随意，内容互不冲突）：
    - PR #1：`codex/oss-test → main`（阶段 C 代码）。
    - PR #2：`codex/Stage_D → main`（本部署手册与验收方案）。
+   合并到 main 后会自动触发 CI（`.github/workflows/ci.yml`：Node 22 + pnpm 11.9，先 test 后 build），两次合并都必须全绿。
 2. 在 `main` 最新提交上打 tag：`git tag v1.0.0 && git push origin v1.0.0`。
 3. 对照 §16 素材清单逐项收集，缺项不能跳过。
 4. 生产 `ADMIN_ENTRY_KEY` 在阶段 2 部署时于服务器生成（`openssl rand -base64 32`），不提前在聊天或文档里传播。
@@ -47,7 +50,7 @@
 
 ## 3. 阶段 1：云资源（阿里云控制台操作）
 
-操作步骤见 [deployment-operations-guide.md](./deployment-operations-guide.md) 第 1–4 节。资源清单：
+操作步骤见 [deployment-operations-guide.md](./deployment-operations-guide.md) 第 1–4 节（其 §0.2 是各步骤对应的阿里云官方文档速查表）。资源清单：
 
 | 资源 | 要求 |
 | --- | --- |
