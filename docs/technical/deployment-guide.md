@@ -11,13 +11,18 @@ NODE_ENV=production
 DATABASE_PATH=/var/lib/chris-hub/chris-hub.sqlite
 ADMIN_ENTRY_KEY=<随机的 URL-safe accessKey>
 ASSET_BASE_URL=https://assets.example.com
-OSS_REGION=<海外地域>
+OSS_REGION=<海外地域短名，如 ap-southeast-1 / cn-hongkong>
 OSS_BUCKET=<bucket>
-OSS_ACCESS_KEY_ID=<服务端密钥>
-OSS_ACCESS_KEY_SECRET=<服务端密钥>
+OSS_ROLE_ARN=acs:ram::<账号ID>:role/chris-hub-oss-uploader
+OSS_ACCESS_KEY_ID=<服务端长期密钥，仅用于签发临时凭证/校验/备份>
+OSS_ACCESS_KEY_SECRET=<服务端长期密钥>
 ```
 
-`ADMIN_ENTRY_KEY` 和 OSS 密钥只存在 ECS 环境变量或密钥管理服务，不写入 Git、浏览器 bundle 或数据库。前台只接受公开的 `ASSET_BASE_URL`。
+密钥模型（与阶段 C 实现一致）：
+
+- 浏览器直传只拿 STS 临时凭证（服务端用长期 AK 调用 AssumeRole 签发，限定到单个 objectKey 的 PutObject，有效期 15 分钟），长期密钥不下发浏览器。
+- 服务端校验、孤儿对象清理和数据库备份使用服务端长期 AK，权限只覆盖生产 Bucket 的 Get/Put/Delete/List/Head。
+- `ADMIN_ENTRY_KEY` 和所有 OSS 密钥只存在 ECS 环境变量或密钥管理服务，不写入 Git、浏览器 bundle 或数据库。前台只接受公开的 `ASSET_BASE_URL`。
 
 ## 2. ECS 初始化
 
@@ -41,7 +46,7 @@ User=chris-hub
 
 ## 3. OSS、CDN、DNS 与 HTTPS
 
-- OSS 建立 `products/`、`banners/`、`site/` 前缀，限制图片 MIME 和单文件大小。
+- OSS 前缀以代码为准：`sku/`（列表缩略图与详情大图）、`banner/`、`site/`（Logo 与二维码）；备份脚本使用 `backups/` 前缀。限制图片 MIME 和单文件大小，上传后服务端再次校验类型、大小、尺寸与比例。
 - OSS Bucket 默认私有；由 CDN/应用生成公开读取 URL，不把服务端密钥下发浏览器。
 - 绑定 `assets.example.com` 到 CDN，站点域名绑定到 ECS 公网 IP。
 - 使用阿里云 CDN/证书或 Let's Encrypt 配置 HTTPS，Nginx 将 HTTP 重定向 HTTPS。
