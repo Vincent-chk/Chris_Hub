@@ -9,7 +9,7 @@ import SiteHeader from "@/app/components/site-header";
 import { copy } from "@/lib/i18n";
 import { formatPriceCents } from "@/lib/money";
 
-export default function ProductDetail({ locale, product }) {
+export default function ProductDetail({ locale, product, contact, logoUrl }) {
   const text = copy(locale);
   const [skuIndex, setSkuIndex] = useState(0);
   const [imageIndex, setImageIndex] = useState(0);
@@ -30,7 +30,7 @@ export default function ProductDetail({ locale, product }) {
 
   return (
     <div className="site-frame">
-      <SiteHeader locale={locale} />
+      <SiteHeader locale={locale} logoUrl={logoUrl} />
       <main className="detail-main section-pad">
         <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href={`/${locale}`}>{text.breadcrumbHome}</Link><span>/</span><Link href={`/${locale}/products`}>{text.breadcrumbProducts}</Link><span>/</span><span>{productTitle}</span></nav>
         <div className="detail-layout">
@@ -54,7 +54,7 @@ export default function ProductDetail({ locale, product }) {
         </div>
       </main>
       <SiteFooter locale={locale} />
-      {contactOpen && <ContactModal locale={locale} onClose={() => setContactOpen(false)} />}
+      {contactOpen && <ContactModal locale={locale} contact={contact} onClose={() => setContactOpen(false)} />}
       {lightboxOpen && <div className="lightbox" role="dialog" aria-modal="true" onClick={() => setLightboxOpen(false)}><button className="icon-button lightbox-close" type="button" aria-label={text.close} title={text.close} onClick={() => setLightboxOpen(false)}>×</button><img src={image} alt={sku.name} onClick={(event) => event.stopPropagation()} /></div>}
     </div>
   );

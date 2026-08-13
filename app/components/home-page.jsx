@@ -7,11 +7,11 @@ import SiteFooter from "@/app/components/site-footer";
 import SiteHeader from "@/app/components/site-header";
 import { copy } from "@/lib/i18n";
 
-export default function HomePage({ locale, banners, popularProducts }) {
+export default function HomePage({ locale, banners, popularProducts, contact, logoUrl }) {
   const text = copy(locale);
   return (
     <div className="site-frame">
-      <SiteHeader locale={locale} />
+      <SiteHeader locale={locale} logoUrl={logoUrl} />
       <main>
         <section className="hero-section section-pad">
           <div className="hero-copy">
@@ -39,7 +39,7 @@ export default function HomePage({ locale, banners, popularProducts }) {
           <ProductGrid products={popularProducts} locale={locale} />
         </section>
 
-        <ContactSection locale={locale} />
+        <ContactSection locale={locale} contact={contact} />
       </main>
       <SiteFooter locale={locale} />
     </div>
