@@ -62,10 +62,18 @@ h2 { font-size: clamp(31px, 4vw, 52px); font-weight: 500; letter-spacing: -0.02e
   .banner-image { transition: none; }
 }
 
-.brand-section { display: grid; grid-template-columns: minmax(140px, 0.4fr) minmax(0, 1fr); gap: 40px; border-top: 1px solid var(--line); padding-top: 44px; padding-bottom: clamp(90px, 12vw, 170px); }
-.brand-intro { display: grid; grid-template-columns: 0.85fr 0.65fr; gap: clamp(30px, 9vw, 150px); align-items: start; }
-.brand-intro h2 { max-width: 620px; margin-bottom: 0; }
-.brand-intro p { max-width: 420px; margin: 7px 0 0; color: var(--muted); font-size: 17px; }
+.brand-section { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 28px; border-top: 1px solid var(--line); padding-top: 44px; padding-bottom: clamp(90px, 12vw, 170px); }
+.brand-intro { position: relative; }
+.brand-copy-col { position: relative; z-index: 1; }
+.brand-intro h2 { max-width: 900px; margin-bottom: 0; }
+.brand-heading { display: flex; flex-direction: column; gap: 12px; }
+.brand-heading-sub { font-size: clamp(20px, 2.4vw, 30px); font-weight: 400; letter-spacing: 0.02em; line-height: 1.2; }
+.brand-points { list-style: none; max-width: 720px; margin: 34px 0 0; padding: 0; color: #5a5f63; font-family: "Songti SC", "STSong", "Noto Serif SC", serif; font-size: 16px; line-height: 1.75; }
+.brand-points li { position: relative; border-top: 1px solid var(--line); padding: 14px 0 14px 22px; }
+.brand-points li:last-child { border-bottom: 1px solid var(--line); }
+.brand-points li::before { position: absolute; top: 24px; left: 3px; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); content: ""; }
+.brand-visual { position: absolute; z-index: -1; top: 50%; right: 0; width: clamp(300px, 34vw, 520px); margin: 0; transform: translateY(-50%); opacity: 0.22; }
+.brand-visual img { width: 100%; height: auto; }
 .products-section { padding-bottom: clamp(90px, 12vw, 160px); }
 .section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 30px; margin-bottom: 32px; }
 .section-heading h2 { margin: 12px 0 6px; }
@@ -173,7 +181,8 @@ h2 { font-size: clamp(31px, 4vw, 52px); font-weight: 500; letter-spacing: -0.02e
 @media (max-width: 1000px) {
   .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .hero-section { grid-template-columns: 0.7fr 1.3fr; gap: 38px; }
-  .brand-intro { grid-template-columns: 1fr; gap: 22px; }
+  .brand-section { overflow: hidden; }
+  .brand-visual { right: -34%; width: min(96vw, 520px); opacity: 0.18; }
 }
 
 @media (max-width: 760px) {

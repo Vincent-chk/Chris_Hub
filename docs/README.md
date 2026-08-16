@@ -14,6 +14,8 @@
 - [数据调用契约](./technical/data-access-contract.md)
 - [数据库架构](./technical/database-architecture.md)
 - [部署指南](./technical/deployment-guide.md)
+- [部署与运维 · 新手操作手册](./technical/deployment-operations-guide.md)
+- [云部署分阶段验收方案](./technical/deployment-acceptance-plan.md)
 - [架构演进规划](./technical/architecture-evolution-plan.md)
 - [可执行实施方案](./technical/execution-plan.md)
 
