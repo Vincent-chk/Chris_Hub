@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import CatalogPage from "@/app/components/catalog-page";
 import { isLocale } from "@/lib/i18n";
-import { listEnabledTags, listProducts } from "@/lib/repositories/catalog";
+import { getSiteSettings, listEnabledTags, listProducts } from "@/lib/repositories/catalog";
 
 export default async function ProductsPage({ params, searchParams }) {
   const { locale } = await params;
@@ -13,12 +13,14 @@ export default async function ProductsPage({ params, searchParams }) {
   const page = Math.max(Number(query?.page) || 1, 1);
   const data = listProducts({ locale, query: q, tagIds, sort, page, pageSize: 20 });
   const tags = listEnabledTags(locale);
+  const { logoUrl } = getSiteSettings(locale);
   return (
     <CatalogPage
       locale={locale}
       data={data}
       filters={{ query: q, tags: tagIds, sort }}
       tags={tags}
+      logoUrl={logoUrl}
     />
   );
 }

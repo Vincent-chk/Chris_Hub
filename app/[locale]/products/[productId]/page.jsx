@@ -9,5 +9,12 @@ export default async function ProductPage({ params }) {
   const product = getProductDetail({ productId, locale });
   if (!product) notFound();
   incrementProductView(productId);
-  return <ProductDetail locale={locale} product={product} />;
+  return (
+    <ProductDetail
+      locale={locale}
+      product={product}
+      contact={product.contact}
+      logoUrl={product.logoUrl}
+    />
+  );
 }
