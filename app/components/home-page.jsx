@@ -26,8 +26,20 @@ export default function HomePage({ locale, banners, popularProducts }) {
         <section className="brand-section section-pad">
           <div className="section-label">01 <span>{text.brandEyebrow}</span></div>
           <div className="brand-intro">
-            <h2>{text.brandTitle}</h2>
-            <p>{text.brandBody}</p>
+            <div className="brand-copy-col">
+              <h2 className="brand-heading">
+                <span>{text.brandTitle}</span>
+                <span className="brand-heading-sub">{text.brandTitleSub}</span>
+              </h2>
+              <ul className="brand-points">
+                {text.brandPoints.map((point) => (
+                  <li key={point}>{point}</li>
+                ))}
+              </ul>
+            </div>
+            <figure className="brand-visual">
+              <img src="/brand/intro.png" alt="" />
+            </figure>
           </div>
         </section>
 
